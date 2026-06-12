@@ -39,7 +39,8 @@ git checkout -b feature/update-readme
 ### 3. コミット
 
 ```bash
-git add .
+git status
+git add <変更したファイル>
 git commit -m "docs: update README"
 ```
 
@@ -50,5 +51,5 @@ git push origin feature/update-readme
 ```
 
 ### 5. PR作成
-- 変更内容を記載して Pull Request を作成する
+- 変更内容を記載して pull request を作成する
 - レビューを依頼する
