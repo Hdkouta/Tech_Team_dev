@@ -36,12 +36,19 @@ git checkout -b feature/update-readme
 ### 2. 作業
 機能追加や修正を行います。
 
-### 3. push
+### 3. コミット
+
+```bash
+git add .
+git commit -m "feat: update README"
+```
+
+### 4. Push
 
 ```bash
 git push origin feature/update-readme
 ```
 
-### 4. PR作成
+### 5. PR作成
 - 変更内容を記載して Pull Request を作成する
 - レビューを依頼する
