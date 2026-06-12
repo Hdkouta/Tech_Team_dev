@@ -40,7 +40,7 @@ git checkout -b feature/update-readme
 
 ```bash
 git add .
-git commit -m "feat: update README"
+git commit -m "docs: update README"
 ```
 
 ### 4. Push
