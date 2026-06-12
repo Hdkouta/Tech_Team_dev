@@ -7,7 +7,7 @@
 
 ### ブランチ
 - `main`：本番
-- `feature/update-readme`：作業用
+- `feature/your-feature-name`：作業用
 
 ### コミット
 - `feat:` 新機能を追加するとき
@@ -30,7 +30,7 @@ cd Tech_Team_dev
 ### 1. ブランチ作成
 
 ```bash
-git checkout -b feature/update-readme
+git checkout -b feature/your-feature-name
 ```
 
 ### 2. 作業
@@ -40,14 +40,14 @@ git checkout -b feature/update-readme
 
 ```bash
 git status
-git add README.md
-git commit -m "docs: update README"
+git add path/to/changed-file
+git commit -m "docs: add development workflow section to README"
 ```
 
 ### 4. Push
 
 ```bash
-git push origin feature/update-readme
+git push origin feature/your-feature-name
 ```
 
 ### 5. PR作成
