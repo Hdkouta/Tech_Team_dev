@@ -1,4 +1,4 @@
-# プロジェクト名
+# Tech_Team_dev
 
 ## 概要
 チーム開発研修用のプロジェクト
@@ -21,8 +21,8 @@
 ## セットアップ
 
 ```bash
-git clone xxx
-cd project
+git clone https://github.com/Hdkouta/Tech_Team_dev.git
+cd Tech_Team_dev
 ```
 
 ## 開発フロー
@@ -30,7 +30,7 @@ cd project
 ### 1. ブランチ作成
 
 ```bash
-git checkout -b feature/xxx
+git checkout -b feature/update-readme
 ```
 
 ### 2. 作業
@@ -39,7 +39,7 @@ git checkout -b feature/xxx
 ### 3. push
 
 ```bash
-git push origin feature/xxx
+git push origin feature/update-readme
 ```
 
 ### 4. PR作成
