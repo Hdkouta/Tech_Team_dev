@@ -7,7 +7,7 @@
 
 ### ブランチ
 - `main`：本番
-- `feature/add-login`：作業用
+- `feature/update-readme`：作業用
 
 ### コミット
 - `feat:` 新機能を追加するとき
@@ -40,7 +40,7 @@ git checkout -b feature/update-readme
 
 ```bash
 git status
-git add <変更したファイル>
+git add README.md
 git commit -m "docs: update README"
 ```
 
