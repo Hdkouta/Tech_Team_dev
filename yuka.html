@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>採用広報ダッシュボード & 施策加速ツール "Co-HR Step"</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts (Noto Sans JP) -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- ヘッダー -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-blue-600 text-white p-2 rounded-xl">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-slate-900">Co-HR Step</h1>
+          <p class="text-xs text-slate-500">採用広報ダッシュボード & 施策加速</p>
+        </div>
+      </div>
+      
+      <!-- 権限切り替え（簡易モック用） -->
+      <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-lg text-xs">
+        <span class="text-slate-500 px-2 font-medium">権限:</span>
+        <select id="roleSelect" class="bg-white border-none rounded px-2 py-1 font-semibold text-slate-700 focus:outline-none cursor-pointer" onchange="changeRole()">
+          <option value="admin">管理者 (冨永さん)</option>
+          <option value="member">メンバー (他部署・協働)</option>
+          <option value="viewer">閲覧者 (役員等)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <div class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8">
+    
+    <!-- ナビゲーション（タブ選択） -->
+    <aside class="w-full md:w-64 flex-shrink-0">
+      <nav class="flex md:flex-col space-x-2 md:space-x-0 md:space-y-1 bg-white p-2 rounded-2xl border border-slate-200 overflow-x-auto">
+        <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition duration-200 bg-blue-50 text-blue-600">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"></path></svg>
+          <span class="whitespace-nowrap">① KPI分析 & シミュレータ</span>
+        </button>
+        <button onclick="switchTab('canvas')" id="btn-canvas" class="tab-btn flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition duration-200 text-slate-600 hover:bg-slate-50">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+          <span class="whitespace-nowrap">② デジタル施策共有</span>
+        </button>
+        <button onclick="switchTab('creative')" id="btn-creative" class="tab-btn flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition duration-200 text-slate-600 hover:bg-slate-50">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span class="whitespace-nowrap">③ サムネイル生成</span>
+        </button>
+        <button onclick="switchTab('processes')" id="btn-processes" class="tab-btn flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition duration-200 text-slate-600 hover:bg-slate-50">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+          <span class="whitespace-nowrap">④ 業務プロセスの標準化</span>
+        </button>
+      </nav>
+
+      <!-- チームメモ プレビュー -->
+      <div class="mt-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 hidden md:block">
+        <h3 class="font-bold text-xs text-amber-800 flex items-center mb-2">
+          <svg class="w-4 h-4 mr-1 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          現在の課題・目標ギャップ
+        </h3>
+        <p class="text-xs text-amber-900 leading-relaxed">
+          現状の<strong>「月2名採用」</strong>から<strong>「月20名」</strong>へ拡大するには、現在のCVR（0.13%）を上げる（1.33%へ向上）だけでは限界があります。<strong>認知拡大（アクセス数増）</strong>と<strong>CVR向上（導線改善）</strong>のセットが必要です。
+        </p>
+      </div>
+    </aside>
+
+    <!-- メインコンテンツ表示エリア -->
+    <main class="flex-grow">
+      
+      <!-- TAB 1: KPIダッシュボード -->
+      <section id="tab-dashboard" class="space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">主要採用KPIダッシュボード</h2>
+              <p class="text-xs text-slate-500">Studio (UU) と HERP (応募) の統合データ</p>
+            </div>
+            <div id="admin-inputs" class="mt-4 sm:mt-0 flex flex-wrap items-center gap-2">
+              <span class="text-xs text-slate-500 font-medium">現在値テスト入力:</span>
+              <input type="number" id="input-uu" value="1500" class="w-20 px-2 py-1 border border-slate-200 rounded text-xs font-semibold text-slate-700" oninput="updateDashboardData()" placeholder="UU数">
+              <span class="text-slate-300">/</span>
+              <input type="number" id="input-cvr" value="2" class="w-16 px-2 py-1 border border-slate-200 rounded text-xs font-semibold text-slate-700" oninput="updateDashboardData()" placeholder="応募">
+              <span class="text-xs text-slate-500">人</span>
+            </div>
+          </div>
+
+          <!-- 数値サマリー -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
+              <p class="text-xs text-slate-500 font-medium">求人サイト訪問者数 (UU)</p>
+              <p class="text-2xl font-black text-slate-900 mt-1" id="stat-uu">1,500 <span class="text-xs font-normal text-slate-500">UU/月</span></p>
+              <span class="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium">Studioインポート</span>
+            </div>
+            <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
+              <p class="text-xs text-slate-500 font-medium">応募者数</p>
+              <p class="text-2xl font-black text-slate-900 mt-1" id="stat-applied">2 <span class="text-xs font-normal text-slate-500">名/月</span></p>
+              <span class="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded font-medium">HERPインポート</span>
+            </div>
+            <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
+              <p class="text-xs text-slate-500 font-medium">移行率 (CVR)</p>
+              <p class="text-2xl font-black text-slate-900 mt-1" id="stat-cvr">0.13 <span class="text-xs font-normal text-slate-500">%</span></p>
+              <span class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-medium">自動計算</span>
+            </div>
+          </div>
+
+          <!-- 目標進捗バー -->
+          <div class="border-t border-slate-100 pt-6">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold text-slate-700">月間採用目標（20人）に対する進捗</span>
+              <span class="text-xs font-bold text-blue-600" id="progress-percent">10% (2 / 20人)</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+              <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-3 rounded-full" style="width: 10%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2画面構成：ボトルネック分析 & シミュレータ -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- ボトルネックファネル（一目で離脱ポイントがわかる） -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm mb-4 flex items-center">
+                <span class="w-1.5 h-4 bg-red-500 rounded-full mr-2"></span>
+                採用離脱ボトルネックの可視化
+              </h3>
+              
+              <!-- ファネル図（CSSと簡易HTMLで表現） -->
+              <div class="space-y-4 my-6">
+                <!-- 訪問 -->
+                <div>
+                  <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1">
+                    <span>1. 求人サイト訪問 (Studio)</span>
+                    <span id="funnel-uu-val">1,500 UU (100%)</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-8 rounded-lg overflow-hidden flex items-center justify-between px-3 relative">
+                    <div class="absolute inset-y-0 left-0 bg-blue-100 w-full"></div>
+                    <span class="relative z-10 text-xs text-blue-800 font-bold">アクセス</span>
+                  </div>
+                </div>
+
+                <!-- 離脱表示（コネクタ風） -->
+                <div class="flex justify-center">
+                  <div class="flex items-center text-red-500 text-xs font-semibold bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
+                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                    離脱：<span id="funnel-bounce-rate">99.87</span>% (<span id="funnel-bounce-count">1,498</span>名がアクションせず離脱)
+                  </div>
+                </div>
+
+                <!-- 応募 -->
+                <div>
+                  <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1">
+                    <span>2. 応募完了 (HERP)</span>
+                    <span id="funnel-applied-val">2 名 (<span id="funnel-cvr-val">0.13</span>%)</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-8 rounded-lg overflow-hidden flex items-center justify-between px-3 relative">
+                    <div id="funnel-applied-bar" class="absolute inset-y-0 left-0 bg-emerald-100" style="width: 5%"></div>
+                    <span class="relative z-10 text-xs text-emerald-800 font-bold">応募決定</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-blue-50 rounded-xl p-3 border border-blue-100">
+              <p class="text-xs text-blue-900 leading-relaxed font-medium">
+                💡 <strong>ボトルネック解説:</strong><br>
+                訪問から応募への移行率が極めて低いです。求人情報の魅力不足や、エントリーフォームへの導線が迷子になっている可能性があります。
+              </p>
+            </div>
+          </div>
+
+          <!-- 長期目標達成シミュレーター（ここが意思決定を早めるコア機能） -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm mb-2 flex items-center">
+                <span class="w-1.5 h-4 bg-emerald-500 rounded-full mr-2"></span>
+                未来予測シミュレーター（目標：月20人）
+              </h3>
+              <p class="text-xs text-slate-500 mb-6">認知度（UU）と導線改善（CVR）の両輪で目標を達成する最適解を探せます</p>
+
+              <div class="space-y-6">
+                <!-- スライダー①：UU（認知度拡大） -->
+                <div>
+                  <div class="flex justify-between text-xs font-bold text-slate-700 mb-2">
+                    <span class="flex items-center">
+                      <svg class="w-4 h-4 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                      自社サイト訪問数 (UU/月)
+                    </span>
+                    <span class="text-blue-600 text-sm" id="sim-uu-label">1,500 UU</span>
+                  </div>
+                  <input id="slider-uu" type="range" min="1500" max="25000" step="500" value="1500" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="runSimulation()">
+                  <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>1,500 (現状)</span>
+                    <span>10,000 (認知重視)</span>
+                    <span>25,000</span>
+                  </div>
+                </div>
+
+                <!-- スライダー②：CVR（サイト内導線改善） -->
+                <div>
+                  <div class="flex justify-between text-xs font-bold text-slate-700 mb-2">
+                    <span class="flex items-center">
+                      <svg class="w-4 h-4 mr-1 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                      サイト内転換率 (CVR)
+                    </span>
+                    <span class="text-emerald-600 text-sm" id="sim-cvr-label">0.13%</span>
+                  </div>
+                  <input id="slider-cvr" type="range" min="0.1" max="2.0" step="0.05" value="0.13" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" oninput="runSimulation()">
+                  <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>0.1% (現状並)</span>
+                    <span>1.0% (標準目標)</span>
+                    <span>2.0% (超優秀)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- シミュレーション結果 -->
+            <div id="sim-result-box" class="mt-6 p-4 rounded-xl border flex items-center justify-between transition-colors duration-300 bg-red-50 border-red-200">
+              <div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-slate-500">シミュレーション後の採用予測</span>
+                <p class="text-xl font-extrabold text-slate-800" id="sim-result-text">2.0名 / 月（未達成）</p>
+                <p class="text-xs text-slate-500 mt-0.5" id="sim-tip">目標20人まで、あと18人不足しています。</p>
+              </div>
+              <div id="sim-status-badge" class="bg-red-500 text-white rounded-full p-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: デジタル施策共有 -->
+      <section id="tab-canvas" class="space-y-6 hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div class="mb-6">
+            <h2 class="text-lg font-bold text-slate-900">デジタル施策共有・構想ボード</h2>
+            <p class="text-xs text-slate-500">手書きメモを撲滅し、施策意図と簡単な画面構成をエンジニアにURL1つで共有</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- 設定フォーム -->
+            <div class="lg:col-span-5 space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">① 施策の目的 / タイトル</label>
+                <input type="text" id="canvas-title" value="新卒採用向け先輩社員トーク企画" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updateCanvasPreview()">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">② ターゲット層 / 解決したい課題</label>
+                <textarea id="canvas-target" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updateCanvasPreview()">「実際の職場の雰囲気がわからない」と悩む求職者の離脱を防ぎ、CVRを高める。</textarea>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">③ 配置するコンポーネント（簡易構成レイアウト）</label>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                  <label class="flex items-center space-x-2 border border-slate-200 rounded-lg p-2 cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+                    <input type="checkbox" id="comp-hero" checked class="rounded text-blue-600 focus:ring-blue-500" onchange="updateCanvasPreview()">
+                    <span class="text-xs font-medium text-slate-700">メイン画像(ヒーロー)</span>
+                  </label>
+                  <label class="flex items-center space-x-2 border border-slate-200 rounded-lg p-2 cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+                    <input type="checkbox" id="comp-grid" checked class="rounded text-blue-600 focus:ring-blue-500" onchange="updateCanvasPreview()">
+                    <span class="text-xs font-medium text-slate-700">3列カードリスト</span>
+                  </label>
+                  <label class="flex items-center space-x-2 border border-slate-200 rounded-lg p-2 cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+                    <input type="checkbox" id="comp-cta" checked class="rounded text-blue-600 focus:ring-blue-500" onchange="updateCanvasPreview()">
+                    <span class="text-xs font-medium text-slate-700">目立つ応募CTAボタン</span>
+                  </label>
+                  <label class="flex items-center space-x-2 border border-slate-200 rounded-lg p-2 cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+                    <input type="checkbox" id="comp-qa" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateCanvasPreview()">
+                    <span class="text-xs font-medium text-slate-700">よくある質問(Q&A)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 共有リンク発行アクション -->
+              <div class="pt-4 border-t border-slate-100">
+                <button onclick="shareCanvasLink()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow-sm">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 10.742l4.004-2.162m0 0a3 3 0 10-2.243-4.077L6.445 6.66a3 3 0 100 4.678l4.004 2.162m0 0a3 3 0 102.243-4.077L8.684 10.742z"></path></svg>
+                  <span>エンジニア共有用の構成テキストをコピー</span>
+                </button>
+                <div id="share-toast" class="hidden text-xs text-center text-emerald-600 font-semibold mt-2">
+                  ✓ クリップボードにマークダウン構成テキストをコピーしました！
+                </div>
+              </div>
+            </div>
+
+            <!-- プレビューエリア -->
+            <div class="lg:col-span-7 bg-slate-100 rounded-2xl p-4 border border-slate-200 flex flex-col h-[400px]">
+              <span class="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">ワイヤーフレーム簡易プレビュー (エンジニア向け構成イメージ)</span>
+              
+              <!-- ワイヤーフレームシミュレーション本体 -->
+              <div class="flex-grow bg-white rounded-xl shadow-inner border border-slate-200 p-4 overflow-y-auto flex flex-col space-y-4">
+                
+                <!-- ヘッダーモック -->
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span class="font-bold text-xs text-slate-400">Company Logo</span>
+                  <span class="bg-blue-600 text-[10px] text-white px-2 py-0.5 rounded font-bold">応募フォーム</span>
+                </div>
+
+                <!-- 構成①: ヒーロー領域 -->
+                <div id="preview-comp-hero" class="bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                  <p class="font-bold text-sm text-slate-800" id="preview-hero-title">新卒採用向け先輩社員トーク企画</p>
+                  <p class="text-xs text-slate-500 mt-1">「ヒーローイメージ画像 / 企画のメインキャッチコピー」</p>
+                </div>
+
+                <!-- 構成②: 3列カードグリッド -->
+                <div id="preview-comp-grid" class="grid grid-cols-3 gap-2">
+                  <div class="bg-slate-50 border border-slate-200 rounded p-2 text-center text-[10px]">
+                    <div class="bg-slate-200 h-8 rounded mb-1"></div>
+                    <strong>開発チーム</strong>
+                    <p class="text-slate-400">社員1名の紹介</p>
+                  </div>
+                  <div class="bg-slate-50 border border-slate-200 rounded p-2 text-center text-[10px]">
+                    <div class="bg-slate-200 h-8 rounded mb-1"></div>
+                    <strong>デザイン</strong>
+                    <p class="text-slate-400">社員2名の紹介</p>
+                  </div>
+                  <div class="bg-slate-50 border border-slate-200 rounded p-2 text-center text-[10px]">
+                    <div class="bg-slate-200 h-8 rounded mb-1"></div>
+                    <strong>人事・経営</strong>
+                    <p class="text-slate-400">社員3名の紹介</p>
+                  </div>
+                </div>
+
+                <!-- 構成③: Q&A -->
+                <div id="preview-comp-qa" class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2 hidden">
+                  <p class="text-xs font-bold text-slate-700">よくある質問 (Q&A)</p>
+                  <div class="bg-white p-1.5 rounded border border-slate-100 text-[9px] text-slate-500">
+                    Q: 未経験でも応募できますか？ / A: 歓迎しております。
+                  </div>
+                </div>
+
+                <!-- 構成④: 目立つCTA -->
+                <div id="preview-comp-cta" class="text-center py-2">
+                  <button class="bg-emerald-500 text-white font-bold text-xs px-6 py-2 rounded-lg shadow-md hover:bg-emerald-600">
+                    イベントに応募して話を聞いてみる
+                  </button>
+                  <p class="text-[9px] text-slate-400 mt-1">※応募導線（HERPへ遷移、または簡易フォーム）</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: サムネイル生成 -->
+      <section id="tab-creative" class="space-y-6 hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div class="mb-6">
+            <h2 class="text-lg font-bold text-slate-900">クリエイティブ自動化（サムネイル生成）</h2>
+            <p class="text-xs text-slate-500">毎回Canvaをゼロから立ち上げる手間を削減。文字を打ち換えるだけで、一瞬で「型化された」画像を量産します</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- 設定入力 -->
+            <div class="lg:col-span-5 space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">① イベント・ラジオのテーマ</label>
+                <input type="text" id="thumb-tag" value="TALK LIVE #01" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="drawThumbnail()">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">② メインタイトル (2行推奨)</label>
+                <textarea id="thumb-title" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold" oninput="drawThumbnail()">未経験からでも活躍できる！&#10;エンジニアが語る本音トーク</textarea>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">③ 日程・場所</label>
+                  <input type="text" id="thumb-date" value="2026.07.15 (WED) 19:30~" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="drawThumbnail()">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">④ 登壇・ゲスト</label>
+                  <input type="text" id="thumb-guests" value="開発チーム 冨永 / エンジニア 坂本" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="drawThumbnail()">
+                </div>
+              </div>
+
+              <!-- カラーテーマ -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">⑤ ブランドカラー</label>
+                <div class="flex space-x-2">
+                  <button onclick="setThumbTheme('#2563eb', '#3b82f6')" class="w-6 h-6 rounded-full bg-blue-600 border border-slate-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"></button>
+                  <button onclick="setThumbTheme('#059669', '#10b981')" class="w-6 h-6 rounded-full bg-emerald-600 border border-slate-300 focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"></button>
+                  <button onclick="setThumbTheme('#ea580c', '#f97316')" class="w-6 h-6 rounded-full bg-orange-600 border border-slate-300 focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"></button>
+                  <button onclick="setThumbTheme('#4f46e5', '#6366f1')" class="w-6 h-6 rounded-full bg-indigo-600 border border-slate-300 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"></button>
+                </div>
+              </div>
+
+              <!-- ダウンロードボタン -->
+              <div class="pt-4 border-t border-slate-100">
+                <button onclick="downloadThumbnail()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow-sm">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                  <span>サムネイルをPNGでダウンロード</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- サムネイルキャンバス -->
+            <div class="lg:col-span-7 bg-slate-100 rounded-2xl p-4 border border-slate-200 flex flex-col items-center justify-center">
+              <span class="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest align-self-start">自動描画リアルタイムプレビュー (1200x630サイズ縮小版)</span>
+              
+              <!-- キャンバス要素 -->
+              <div class="w-full max-w-[480px] aspect-[1200/630] bg-white shadow-lg rounded-lg overflow-hidden border border-slate-300">
+                <canvas id="thumbnailCanvas" width="1200" height="630" class="w-full h-full object-contain"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: 業務プロセス標準化 -->
+      <section id="tab-processes" class="space-y-6 hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">冨永さんの業務を集中化！標準化プロセス「型化」テンプレート</h2>
+              <p class="text-xs text-slate-500">イベント告知やラジオ運営をワンストップ・思考ゼロで進める手順化リスト</p>
+            </div>
+            <!-- ロールベースで表示内容が変わるデモ -->
+            <span class="mt-2 sm:mt-0 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded" id="process-role-badge">現在: 管理者権限（フル編集可能）</span>
+          </div>
+
+          <!-- 標準ワークフロー -->
+          <div class="space-y-6">
+            <!-- プロセス1 -->
+            <div class="border border-slate-150 rounded-xl p-4 hover:border-blue-200 transition duration-200">
+              <div class="flex items-start space-x-3">
+                <div class="bg-blue-100 text-blue-600 font-bold rounded-lg px-2.5 py-1 text-xs">ステップ 1</div>
+                <div class="flex-grow">
+                  <h3 class="font-bold text-sm text-slate-800">施策の構想 & エンジニアへの即時共有</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">施策アイデア（ターゲットと提供価値）を型化してデジタル化する</p>
+                  
+                  <div class="mt-3 flex items-center space-x-2">
+                    <button onclick="switchTab('canvas')" class="text-xs text-blue-600 font-semibold hover:underline flex items-center">
+                      「② 施策構想ボード」を立ち上げて構成をメモする →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- プロセス2 -->
+            <div class="border border-slate-150 rounded-xl p-4 hover:border-emerald-200 transition duration-200">
+              <div class="flex items-start space-x-3">
+                <div class="bg-emerald-100 text-emerald-600 font-bold rounded-lg px-2.5 py-1 text-xs">ステップ 2</div>
+                <div class="flex-grow">
+                  <h3 class="font-bold text-sm text-slate-800">クリエイティブ（サムネイル）の瞬時作成</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">Canvaを探し回らず、本ツールで文字を打ち換えてダウンロードする</p>
+                  
+                  <div class="mt-3 flex items-center space-x-2">
+                    <button onclick="switchTab('creative')" class="text-xs text-emerald-600 font-semibold hover:underline flex items-center">
+                      「③ サムネイル生成」を開いて15秒でバナーを作る →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- プロセス3 -->
+            <div class="border border-slate-150 rounded-xl p-4 hover:border-purple-200 transition duration-200">
+              <div class="flex items-start space-x-3">
+                <div class="bg-purple-100 text-purple-600 font-bold rounded-lg px-2.5 py-1 text-xs">ステップ 3</div>
+                <div class="flex-grow">
+                  <h3 class="font-bold text-sm text-slate-800">Studio & HERP の数値を更新してファネルを見る</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">週に1回、数値を放り込むだけで、どこが現在最優先のボトルネックかをチームと共有する</p>
+                  
+                  <div class="mt-3 flex items-center space-x-2">
+                    <button onclick="switchTab('dashboard')" class="text-xs text-purple-600 font-semibold hover:underline flex items-center">
+                      「① KPI分析」でシミュレーションとファネルをレビューする →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- フッター -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4">
+      <p>Co-HR Step © 2026. 採用広報の分析・クリエイティブ・共有をスマートにするダッシュボード（プロトタイプ）</p>
+    </div>
+  </footer>
+
+  <!-- スクリプト制御 -->
+  <script>
+    // サムネイル用変数
+    let thumbPrimaryColor = '#2563eb';
+    let thumbSecondaryColor = '#3b82f6';
+
+    window.onload = function() {
+      // 初期化
+      updateDashboardData();
+      drawThumbnail();
+    };
+
+    // タブ切り替えロジック
+    function switchTab(tabId) {
+      // 全タブを隠す
+      document.getElementById('tab-dashboard').classList.add('hidden');
+      document.getElementById('tab-canvas').classList.add('hidden');
+      document.getElementById('tab-creative').classList.add('hidden');
+      document.getElementById('tab-processes').classList.add('hidden');
+
+      // 全ボタンのアクティブクラス解除
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-50', 'text-blue-600');
+        btn.classList.add('text-slate-600', 'hover:bg-slate-50');
+      });
+
+      // 対象のタブを表示
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+      
+      // 対象のボタンをアクティブにする
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-50');
+        activeBtn.classList.add('bg-blue-50', 'text-blue-600');
+      }
+
+      // サムネイル描画の遅延実行
+      if (tabId === 'creative') {
+        setTimeout(drawThumbnail, 100);
+      }
+    }
+
+    // 1. KPIダッシュボード更新処理
+    function updateDashboardData() {
+      const uu = parseInt(document.getElementById('input-uu').value) || 0;
+      const applied = parseInt(document.getElementById('input-cvr').value) || 0;
+      
+      // 移行率(CVR)計算
+      const cvr = uu > 0 ? ((applied / uu) * 100).toFixed(2) : 0.00;
+
+      // 各種表示の更新
+      document.getElementById('stat-uu').innerHTML = `${uu.toLocaleString()} <span class="text-xs font-normal text-slate-500">UU/月</span>`;
+      document.getElementById('stat-applied').innerHTML = `${applied.toLocaleString()} <span class="text-xs font-normal text-slate-500">名/月</span>`;
+      document.getElementById('stat-cvr').innerText = cvr;
+
+      // 目標進捗更新
+      const progressPercent = Math.min(((applied / 20) * 100), 100).toFixed(0);
+      document.getElementById('progress-percent').innerText = `${progressPercent}% (${applied} / 20人)`;
+      document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+      // ボトルネックファネルの更新
+      document.getElementById('funnel-uu-val').innerText = `${uu.toLocaleString()} UU (100%)`;
+      const bounceCount = uu - applied;
+      const bounceRate = uu > 0 ? (((uu - applied) / uu) * 100).toFixed(2) : 0;
+      document.getElementById('funnel-bounce-rate').innerText = bounceRate;
+      document.getElementById('funnel-bounce-count').innerText = bounceCount.toLocaleString();
+      document.getElementById('funnel-applied-val').innerText = `${applied} 名 (${cvr}%)`;
+      document.getElementById('funnel-cvr-val').innerText = cvr;
+
+      // ファネルの可視化バーの幅調整
+      const barPercent = Math.max(Math.min((applied / uu) * 100 * 50, 100), 5); // 誇張して見えるように調整
+      document.getElementById('funnel-applied-bar').style.width = `${barPercent}%`;
+
+      // 同時にシミュレーターの最小値基準を設定
+      document.getElementById('slider-uu').value = uu;
+      document.getElementById('slider-cvr').value = cvr;
+      runSimulation();
+    }
+
+    // 未来予測シミュレータ
+    function runSimulation() {
+      const simUu = parseInt(document.getElementById('slider-uu').value);
+      const simCvr = parseFloat(document.getElementById('slider-cvr').value);
+
+      document.getElementById('sim-uu-label').innerText = `${simUu.toLocaleString()} UU`;
+      document.getElementById('sim-cvr-label').innerText = `${simCvr.toFixed(2)}%`;
+
+      const predictedHires = (simUu * (simCvr / 100)).toFixed(1);
+      
+      const resultBox = document.getElementById('sim-result-box');
+      const resultText = document.getElementById('sim-result-text');
+      const tipText = document.getElementById('sim-tip');
+      const badge = document.getElementById('sim-status-badge');
+
+      resultText.innerText = `${predictedHires}名 / 月`;
+
+      if (parseFloat(predictedHires) >= 20.0) {
+        // 目標達成
+        resultBox.className = "mt-6 p-4 rounded-xl border flex items-center justify-between transition-colors duration-300 bg-emerald-50 border-emerald-200 text-slate-800";
+        tipText.innerText = "🎉 素晴らしい！採用目標「月20人」を達成可能です！";
+        badge.className = "bg-emerald-500 text-white rounded-full p-2";
+        badge.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+      } else {
+        // 未達成
+        resultBox.className = "mt-6 p-4 rounded-xl border flex items-center justify-between transition-colors duration-300 bg-red-50 border-red-200 text-slate-800";
+        const gap = (20.0 - parseFloat(predictedHires)).toFixed(1);
+        tipText.innerText = `目標20人まで、あと ${gap} 人不足。認知(UU)かCVRをもっと上げる必要があります。`;
+        badge.className = "bg-red-500 text-white rounded-full p-2";
+        badge.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+      }
+    }
+
+    // 2. 施策構想共有
+    function updateCanvasPreview() {
+      const title = document.getElementById('canvas-title').value;
+      const target = document.getElementById('canvas-target').value;
+
+      document.getElementById('preview-hero-title').innerText = title;
+
+      // コンポーネントトグル
+      const showHero = document.getElementById('comp-hero').checked;
+      const showGrid = document.getElementById('comp-grid').checked;
+      const showCTA = document.getElementById('comp-cta').checked;
+      const showQA = document.getElementById('comp-qa').checked;
+
+      document.getElementById('preview-comp-hero').style.display = showHero ? 'block' : 'none';
+      document.getElementById('preview-comp-grid').style.display = showGrid ? 'grid' : 'none';
+      document.getElementById('preview-comp-cta').style.display = showCTA ? 'block' : 'none';
+      document.getElementById('preview-comp-qa').style.display = showQA ? 'block' : 'none';
+    }
+
+    function shareCanvasLink() {
+      const title = document.getElementById('canvas-title').value;
+      const target = document.getElementById('canvas-target').value;
+      const showHero = document.getElementById('comp-hero').checked ? "■ ヒーロービジュアル（タイトル）\n" : "";
+      const showGrid = document.getElementById('comp-grid').checked ? "■ 3列構成（メンバー紹介など）\n" : "";
+      const showQA = document.getElementById('comp-qa').checked ? "■ よくある質問（FAQ）\n" : "";
+      const showCTA = document.getElementById('comp-cta').checked ? "■ 応募導線（CTAボタン）\n" : "";
+
+      const shareText = `【新規採用広報施策】\n■ タイトル: ${title}\n■ 解決したい課題: ${target}\n■ 画面構成希望:\n${showHero}${showGrid}${showQA}${showCTA}\n----------------\n※この構成内容で実装を検討させてください！`;
+
+      // クリップボードにコピー
+      const tempTextarea = document.createElement('textarea');
+      tempTextarea.value = shareText;
+      document.body.appendChild(tempTextarea);
+      tempTextarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextarea);
+
+      // トースト通知を表示
+      const toast = document.getElementById('share-toast');
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    // 3. サムネイル自動生成
+    function setThumbTheme(primary, secondary) {
+      thumbPrimaryColor = primary;
+      thumbSecondaryColor = secondary;
+      drawThumbnail();
+    }
+
+    function drawThumbnail() {
+      const canvas = document.getElementById('thumbnailCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const tag = document.getElementById('thumb-tag').value.toUpperCase();
+      const title = document.getElementById('thumb-title').value;
+      const date = document.getElementById('thumb-date').value;
+      const guests = document.getElementById('thumb-guests').value;
+
+      // 背景塗りつぶし（グラデーション）
+      const grad = ctx.createLinearGradient(0, 0, 1200, 630);
+      grad.addColorStop(0, thumbPrimaryColor);
+      grad.addColorStop(1, thumbSecondaryColor);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1200, 630);
+
+      // 装飾用の幾何学模様
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.beginPath();
+      ctx.arc(1000, 100, 300, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(1100, 500, 200, 0, Math.PI * 2);
+      ctx.fill();
+
+      // カード型枠（中央コンポーネント用）
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.roundRect(80, 80, 1040, 470, 30);
+      ctx.fill();
+      ctx.stroke();
+
+      // タグ（イベントカテゴリなど）
+      ctx.fillStyle = thumbPrimaryColor;
+      ctx.beginPath();
+      ctx.roundRect(140, 140, 240, 50, 10);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px "Noto Sans JP"';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(tag, 260, 165);
+
+      // メインタイトル
+      ctx.fillStyle = '#0f172a'; // Slate-900
+      ctx.font = '900 48px "Noto Sans JP"';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      
+      const lines = title.split('\n');
+      let startY = 220;
+      for (let i = 0; i < lines.length && i < 2; i++) {
+        ctx.fillText(lines[i], 140, startY + (i * 65));
+      }
+
+      // 下部の境界線
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(140, 430);
+      ctx.lineTo(1060, 430);
+      ctx.stroke();
+
+      // 日時情報
+      ctx.fillStyle = '#475569'; // Slate-600
+      ctx.font = 'bold 26px "Noto Sans JP"';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`🗓️ ${date}`, 140, 475);
+
+      // ゲスト情報
+      ctx.fillStyle = '#1e293b'; // Slate-800
+      ctx.font = 'bold 26px "Noto Sans JP"';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`🎙️ ${guests}`, 1060, 475);
+    }
+
+    function downloadThumbnail() {
+      const canvas = document.getElementById('thumbnailCanvas');
+      // 古いブラウザでも動作しやすいaタグ生成方式
+      const link = document.createElement('a');
+      link.download = `thumb_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // 4. ユーザーロール（権限）の切り替えデモ
+    function changeRole() {
+      const role = document.getElementById('roleSelect').value;
+      const adminInputs = document.getElementById('admin-inputs');
+      const processRoleBadge = document.getElementById('process-role-badge');
+
+      if (role === 'admin') {
+        adminInputs.style.opacity = "1";
+        adminInputs.querySelectorAll('input').forEach(el => el.disabled = false);
+        processRoleBadge.innerText = "現在: 管理者権限（フル編集・設定可能）";
+        processRoleBadge.className = "mt-2 sm:mt-0 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded";
+      } else if (role === 'member') {
+        adminInputs.style.opacity = "1";
+        adminInputs.querySelectorAll('input').forEach(el => el.disabled = false);
+        processRoleBadge.innerText = "現在: メンバー権限（施策・クリエイティブの追加可能）";
+        processRoleBadge.className = "mt-2 sm:mt-0 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded";
+      } else {
+        // 閲覧者権限（データ更新をロック）
+        adminInputs.style.opacity = "0.5";
+        adminInputs.querySelectorAll('input').forEach(el => el.disabled = true);
+        processRoleBadge.innerText = "現在: 閲覧者権限（読み取り専用）";
+        processRoleBadge.className = "mt-2 sm:mt-0 text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded";
+      }
+    }
+  </script>
+</body>
+</html>
+
