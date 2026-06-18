@@ -1,9 +1,38 @@
-function App() {
-  return (
-    <div>
-      <h1>Data Visualizer</h1>
-    </div>
-  )
-}
+import React from "react";
+import {
+  Box,
+  Grid,
+  Select,
+  MenuItem,
+  FormControl,
+} from "@mui/material";
+import ActionButtons from "./component/ActionButtons";
 
-export default App
+const Home = () => {
+  return (
+    <Box sx={{ p: 4, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+
+      {/* ===== 上部エリア ===== */}
+      <Grid container spacing={2} sx={{ alignItems: "center", mb: 4 }}>
+
+        {/* 左：セレクト */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <FormControl size="small">
+            <Select defaultValue="views">
+              <MenuItem value="views">閲覧数</MenuItem>
+              <MenuItem value="likes">いいね数</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* 右：ボタン */}
+        <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+          <ActionButtons />
+        </Grid>
+      </Grid>
+
+    </Box>
+  );
+};
+
+export default Home;
