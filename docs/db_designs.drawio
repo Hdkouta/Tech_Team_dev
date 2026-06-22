@@ -1,0 +1,96 @@
+<mxfile host="65bd71144e">
+    <diagram id="current-db" name="Current DB">
+        <mxGraphModel dx="794" dy="546" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="note1" value="Current implementation in backend/app.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1" value="kpi_items&#xa;---------------------------&#xa;PK id (int)&#xa;name (string100)&#xa;code (string100, unique)&#xa;unit (string20)&#xa;display_order (int)&#xa;created_at (datetime)&#xa;updated_at (datetime)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="100" width="300" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2" value="kpi_records&#xa;---------------------------&#xa;PK id (int)&#xa;FK kpi_item_id -&gt; kpi_items.id&#xa;target_month (string7 YYYY-MM)&#xa;actual_value (float)&#xa;target_value (float)&#xa;source (string50)&#xa;memo (string300, nullable)&#xa;created_at (datetime)&#xa;updated_at (datetime)&#xa;UNIQUE(kpi_item_id, target_month)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="390" y="100" width="360" height="260" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3" value="recruitment_records&#xa;---------------------------&#xa;PK id (int)&#xa;target_month (string7 YYYY-MM)&#xa;department (string100)&#xa;position (string100)&#xa;planned_hires (int)&#xa;actual_hires (int)&#xa;applicants (int)&#xa;interviews (int)&#xa;offers (int)&#xa;source (string50)&#xa;memo (string300, nullable)&#xa;created_at (datetime)&#xa;updated_at (datetime)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="790" y="100" width="360" height="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="t4" value="traffic_records&#xa;---------------------------&#xa;PK id (int)&#xa;target_month (string7 YYYY-MM)&#xa;platform (string50)&#xa;metric_type (string50)&#xa;metric_value (float)&#xa;source (string50)&#xa;memo (string300, nullable)&#xa;created_at (datetime)&#xa;updated_at (datetime)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+                    <mxGeometry x="1190" y="100" width="330" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="t2" target="t1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="proposed-db" name="Proposed Better DB">
+        <mxGraphModel dx="794" dy="546" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="pnote" value="Proposed dimensional model (extensible for KPI, recruitment, SNS/site traffic)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="560" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="d1" value="dim_time&#xa;---------------------------&#xa;PK time_id (int)&#xa;year (int)&#xa;month (int)&#xa;month_key (string7 YYYY-MM, unique)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="120" width="260" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="d2" value="dim_metric&#xa;---------------------------&#xa;PK metric_id (int)&#xa;metric_code (unique)&#xa;metric_name&#xa;unit&#xa;domain (kpi/recruitment/traffic)&#xa;aggregation_rule (sum/avg/last)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="330" y="120" width="300" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="d3" value="dim_platform&#xa;---------------------------&#xa;PK platform_id (int)&#xa;platform_code (unique)&#xa;platform_name&#xa;platform_type (site/sns/other)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="660" y="120" width="280" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="d4" value="dim_org_unit&#xa;---------------------------&#xa;PK org_unit_id (int)&#xa;dept_code&#xa;dept_name&#xa;position_code&#xa;position_name" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="970" y="120" width="280" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="d5" value="dim_source&#xa;---------------------------&#xa;PK source_id (int)&#xa;source_name&#xa;ingestion_type (manual/api/import)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="1280" y="120" width="280" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="f1" value="fact_metric_value&#xa;---------------------------&#xa;PK value_id (bigint)&#xa;FK time_id&#xa;FK metric_id&#xa;FK platform_id (nullable)&#xa;FK org_unit_id (nullable)&#xa;FK source_id&#xa;actual_value (decimal)&#xa;memo (text)&#xa;created_at, updated_at&#xa;UNIQUE(time_id, metric_id, platform_id, org_unit_id)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="260" y="420" width="360" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="f2" value="fact_metric_target&#xa;---------------------------&#xa;PK target_id (bigint)&#xa;FK time_id&#xa;FK metric_id&#xa;FK org_unit_id (nullable)&#xa;target_value (decimal)&#xa;memo (text)&#xa;created_at, updated_at&#xa;UNIQUE(time_id, metric_id, org_unit_id)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="650" y="420" width="330" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="f3" value="fact_recruitment_pipeline&#xa;---------------------------&#xa;PK pipeline_id (bigint)&#xa;FK time_id&#xa;FK org_unit_id&#xa;FK source_id&#xa;applicants (int)&#xa;interviews (int)&#xa;offers (int)&#xa;hires (int)&#xa;memo (text)&#xa;created_at, updated_at&#xa;UNIQUE(time_id, org_unit_id, source_id)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="1010" y="420" width="360" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe1" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f1" target="d1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe2" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f1" target="d2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe3" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f1" target="d3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe4" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f1" target="d4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe5" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f1" target="d5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe6" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f2" target="d1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe7" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f2" target="d2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe8" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f2" target="d4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe9" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f3" target="d1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe10" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f3" target="d4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pe11" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;" parent="1" source="f3" target="d5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
