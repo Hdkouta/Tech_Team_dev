@@ -32,19 +32,30 @@ const formatPercent = (value) => {
 const UnifiedInputModal = ({
   open,
   onClose,
-  definitions,
-  form,
-  setForm,
-  onSave,
-  saving,
+  definitions = [],
+  form = {},
+  setForm = () => {},
+  onSave = () => {},
+  saving = false,
 }) => {
-  const selectedDefinition =
-    definitions.find((item) => item.id === Number(form.metric_definition_id)) || null;
+  const safeForm = {
+    metric_definition_id: "",
+    target_total: "",
+    actual_total: "",
+    actual_new_graduate: "",
+    actual_mid_career: "",
+    source: "",
+    memo: "",
+    ...form,
+  };
 
-  const targetTotal = toNum(form.target_total);
+  const selectedDefinition =
+    definitions.find((item) => item.id === Number(safeForm.metric_definition_id)) || null;
+
+  const targetTotal = toNum(safeForm.target_total);
   const actualTotal = selectedDefinition?.supports_breakdown
-    ? toNum(form.actual_new_graduate) + toNum(form.actual_mid_career)
-    : toNum(form.actual_total);
+    ? toNum(safeForm.actual_new_graduate) + toNum(safeForm.actual_mid_career)
+    : toNum(safeForm.actual_total);
   const gap = actualTotal - targetTotal;
   const achievementRate = targetTotal === 0 ? null : Number(((actualTotal / targetTotal) * 100).toFixed(1));
 
@@ -69,7 +80,7 @@ const UnifiedInputModal = ({
             <Select
               labelId="application-metric-label"
               label="入力種別"
-              value={form.metric_definition_id}
+              value={safeForm.metric_definition_id}
               onChange={(e) => handleDefinitionChange(e.target.value)}
             >
               {definitions.map((item) => (
@@ -83,7 +94,7 @@ const UnifiedInputModal = ({
           <TextField
             label="目標（合計）"
             type="number"
-            value={form.target_total}
+            value={safeForm.target_total}
             onChange={(e) => setForm((prev) => ({ ...prev, target_total: e.target.value }))}
             fullWidth
           />
@@ -93,7 +104,7 @@ const UnifiedInputModal = ({
               <TextField
                 label="実績（新卒）"
                 type="number"
-                value={form.actual_new_graduate}
+                value={safeForm.actual_new_graduate}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, actual_new_graduate: e.target.value }))
                 }
@@ -102,7 +113,7 @@ const UnifiedInputModal = ({
               <TextField
                 label="実績（中途）"
                 type="number"
-                value={form.actual_mid_career}
+                value={safeForm.actual_mid_career}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, actual_mid_career: e.target.value }))
                 }
@@ -113,7 +124,7 @@ const UnifiedInputModal = ({
             <TextField
               label="実績（合計）"
               type="number"
-              value={form.actual_total}
+              value={safeForm.actual_total}
               onChange={(e) => setForm((prev) => ({ ...prev, actual_total: e.target.value }))}
               fullWidth
             />
@@ -121,7 +132,7 @@ const UnifiedInputModal = ({
 
           <TextField
             label="データ取得元"
-            value={form.source}
+            value={safeForm.source}
             onChange={(e) => setForm((prev) => ({ ...prev, source: e.target.value }))}
             fullWidth
           />
@@ -148,7 +159,7 @@ const UnifiedInputModal = ({
 
           <TextField
             label="メモ"
-            value={form.memo}
+            value={safeForm.memo}
             onChange={(e) => setForm((prev) => ({ ...prev, memo: e.target.value }))}
             fullWidth
             multiline
