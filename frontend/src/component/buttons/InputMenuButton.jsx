@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@mui/material";
 
+// 入力ボタンを表示
 const InputMenuButton = ({ onClick }) => {
 
   return (

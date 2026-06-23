@@ -4,16 +4,19 @@ const api = axios.create({
   baseURL: 'http://localhost:5000',
 })
 
+// ヘルスチェックを取得
 export const getHealth = async () => {
   const response = await api.get('/api/health')
   return response.data
 }
 
+// 指標マスタを取得
 export const getApplicationMetricDefinitions = async () => {
   const response = await api.get('/api/application-metric-definitions')
   return response.data
 }
 
+// 応募指標データを取得
 export const getApplicationMetrics = async (month) => {
   const response = await api.get('/api/application-metrics', {
     params: month ? { month } : {},
@@ -21,16 +24,20 @@ export const getApplicationMetrics = async (month) => {
   return response.data
 }
 
+// 応募指標データを保存
 export const upsertApplicationMetric = async (payload) => {
   const response = await api.post('/api/application-metrics', payload)
   return response.data
 }
 
 // data.jsx が参照する旧関数名との互換レイヤー
+// 旧名で指標マスタを取得
 export const getMetricDefinitions = async () => getApplicationMetricDefinitions()
 
+// 旧名で指標データを取得
 export const getMetrics = async (month) => getApplicationMetrics(month)
 
+// 旧名で指標データを保存
 export const saveMetricRecord = async (payload) => {
   const normalizedPayload = {
     month: payload.month,
@@ -44,12 +51,16 @@ export const saveMetricRecord = async (payload) => {
   return upsertApplicationMetric(normalizedPayload)
 }
 
+// 採用進捗のダミーを返す
 export const getRecruitmentPipeline = async () => ({ rows: [] })
 
+// Web閲覧のダミーを返す
 export const getWebViews = async () => ({ rows: [] })
 
+// 採用進捗のダミー保存
 export const saveRecruitmentPipeline = async () => ({ message: '保存しました' })
 
+// Web閲覧のダミー保存
 export const saveWebViewRecord = async () => ({ message: '保存しました' })
 
 export default api

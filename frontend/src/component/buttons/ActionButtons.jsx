@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@mui/material";
 
+// 再読込ボタンを表示
 const ActionButtons = ({ onReload }) => {
   return (
     <>
