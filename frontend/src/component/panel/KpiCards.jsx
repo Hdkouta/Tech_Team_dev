@@ -10,23 +10,48 @@ const KpiCards = ({
   yoyColor,
 }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-      <div className="bg-white p-2 rounded shadow">
-        <p className="text-xs text-gray-500">エントリー数</p>
-        <p className="font-bold">{selectedKpi.entriesActual.toLocaleString("ja-JP")}</p>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+      {/* エントリー数 */}
+      <div className="bg-white p-3 rounded shadow">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">エントリー数</p>
+          <p className="text-2xl font-bold">
+            {selectedKpi.entriesActual.toLocaleString("ja-JP")}
+          </p>
+        </div>
       </div>
-      <div className="bg-white p-2 rounded shadow">
-        <p className="text-xs text-gray-500">達成率</p>
-        <p className={`font-bold ${achievementColor}`}>{formatRate(selectedKpi.achievementRate)}</p>
+
+      {/* 達成率 */}
+      <div className="bg-white p-3 rounded shadow">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">達成率</p>
+          <p className={`text-2xl font-bold ${achievementColor}`}>
+            {formatRate(selectedKpi.achievementRate)}
+          </p>
+        </div>
       </div>
-      <div className="bg-white p-2 rounded shadow">
-        <p className="text-xs text-gray-500">承諾率</p>
-        <p className={`font-bold ${acceptanceColor}`}>{formatRate(selectedKpi.acceptanceRate)}</p>
+
+      {/* 承諾率 */}
+      <div className="bg-white p-3 rounded shadow">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">承諾率</p>
+          <p className={`text-2xl font-bold ${acceptanceColor}`}>
+            {formatRate(selectedKpi.acceptanceRate)}
+          </p>
+        </div>
       </div>
-      <div className="bg-white p-2 rounded shadow">
-        <p className="text-xs text-gray-500">前年比</p>
-        <p className={`font-bold ${yoyColor}`}>{formatSignedRate(selectedKpi.yoy)}</p>
+
+      {/* 前年比 */}
+      <div className="bg-white p-3 rounded shadow">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-500">前年比</p>
+          <p className={`text-2xl font-bold ${yoyColor}`}>
+            {formatSignedRate(selectedKpi.yoy)}
+          </p>
+        </div>
       </div>
+
     </div>
   );
 };
