@@ -12,8 +12,6 @@ import InputMenuButton from "./component/buttons/InputMenuButton";
 import * as api from "./api";
 import UnifiedInputModal from "./component/modals/UnifiedInputModal";
 import MetricsTable from "./component/tables/MetricsTable";
-import RecruitmentPipelineTable from "./component/tables/RecruitmentPipelineTable";
-import WebViewsTable from "./component/tables/WebViewsTable";
 
 const getCurrentMonth = () => {
   const now = new Date();
@@ -36,44 +34,19 @@ const Home = () => {
   const [month, setMonth] = React.useState(getCurrentMonth());
   const [metricDefinitions, setMetricDefinitions] = React.useState([]);
   const [metricRows, setMetricRows] = React.useState([]);
-  const [recruitmentPipelineRows, setRecruitmentPipelineRows] = React.useState([]);
-  const [webViewRows, setWebViewRows] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
 
   const [openInputModal, setOpenInputModal] = React.useState(false);
-  const [inputType, setInputType] = React.useState("metric");
 
   const [metricForm, setMetricForm] = React.useState({
     metric_definition_id: "",
-    actual_value: "",
-    target_value: "",
+    target_total: "",
+    actual_total: "",
+    actual_new_graduate: "",
+    actual_mid_career: "",
     source: "STUDIO",
-    memo: "",
-  });
-
-  const [recruitmentForm, setRecruitmentForm] = React.useState({
-    department: "採用チーム",
-    position: "エンジニア",
-    planned_hires: "",
-    applicants: "",
-    document_pass: "",
-    first_interview_pass: "",
-    final_interview_pass: "",
-    offers: "",
-    hires: "",
-    source: "手入力",
-    memo: "",
-  });
-
-  const [webViewForm, setWebViewForm] = React.useState({
-    site_name: "公式サイト",
-    site_category: "website",
-    page_views: "",
-    unique_users: "",
-    entry_page_views: "",
-    source: "GA4",
     memo: "",
   });
 
@@ -81,14 +54,25 @@ const Home = () => {
     setLoading(true);
     setError("");
     try {
-      const [metricData, recruitmentData, webViewData] = await Promise.all([
-        api.getMetrics(targetMonth),
-        api.getRecruitmentPipeline(targetMonth),
-        api.getWebViews(targetMonth),
-      ]);
-      setMetricRows(metricData.rows || []);
-      setRecruitmentPipelineRows(recruitmentData.rows || []);
-      setWebViewRows(webViewData.rows || []);
+      const metricData = await api.getMetrics(targetMonth);
+      const normalizedRows = (metricData.rows || []).map((row) => {
+        const actualNewGraduate = Number(row.actual_new_graduate ?? 0);
+        const actualMidCareer = Number(row.actual_mid_career ?? 0);
+        const targetTotal = Number(row.target_total ?? 0);
+        const actualTotal = actualNewGraduate + actualMidCareer;
+        const gap = actualTotal - targetTotal;
+        const achievementRate = targetTotal === 0
+          ? null
+          : Number(((actualTotal / targetTotal) * 100).toFixed(1));
+
+        return {
+          ...row,
+          actual_total: actualTotal,
+          gap,
+          achievement_rate: achievementRate,
+        };
+      });
+      setMetricRows(normalizedRows);
     } catch (e) {
       setError(getApiErrorMessage(e, "一覧の取得に失敗しました"));
     } finally {
@@ -117,12 +101,23 @@ const Home = () => {
   }, [month]);
 
   const handleSaveMetric = async () => {
+    const selectedDefinition =
+      metricDefinitions.find((item) => item.id === Number(metricForm.metric_definition_id)) || null;
+
     if (
       !metricForm.metric_definition_id ||
-      metricForm.actual_value === "" ||
-      metricForm.target_value === ""
+      metricForm.target_total === ""
     ) {
-      setError("指標、実績値、目標値を入力してください");
+      setError("指標と目標（合計）を入力してください");
+      return;
+    }
+
+    if (
+      selectedDefinition?.supports_breakdown
+        ? metricForm.actual_new_graduate === "" || metricForm.actual_mid_career === ""
+        : metricForm.actual_total === ""
+    ) {
+      setError("実績値を入力してください");
       return;
     }
 
@@ -132,83 +127,29 @@ const Home = () => {
       await api.saveMetricRecord({
         month,
         metric_definition_id: Number(metricForm.metric_definition_id),
-        actual_value: Number(metricForm.actual_value),
-        target_value: Number(metricForm.target_value),
+        target_total: Number(metricForm.target_total),
+        actual_total: selectedDefinition?.supports_breakdown ? 0 : Number(metricForm.actual_total),
+        actual_new_graduate: selectedDefinition?.supports_breakdown
+          ? Number(metricForm.actual_new_graduate)
+          : Number(metricForm.actual_total),
+        actual_mid_career: selectedDefinition?.supports_breakdown
+          ? Number(metricForm.actual_mid_career)
+          : 0,
         source: metricForm.source,
         memo: metricForm.memo,
       });
       await loadRows(month);
       setMetricForm((prev) => ({
         ...prev,
-        actual_value: "",
-        target_value: "",
+        target_total: "",
+        actual_total: "",
+        actual_new_graduate: "",
+        actual_mid_career: "",
         memo: "",
       }));
       setOpenInputModal(false);
     } catch (e) {
       setError(getApiErrorMessage(e, "保存に失敗しました"));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveRecruitment = async () => {
-    if (!recruitmentForm.department || !recruitmentForm.position) {
-      setError("部署と職種を入力してください");
-      return;
-    }
-
-    setSaving(true);
-    setError("");
-    try {
-      await api.saveRecruitmentPipeline({
-        month,
-        ...recruitmentForm,
-      });
-      await loadRows(month);
-      setRecruitmentForm((prev) => ({
-        ...prev,
-        planned_hires: "",
-        applicants: "",
-        document_pass: "",
-        first_interview_pass: "",
-        final_interview_pass: "",
-        offers: "",
-        hires: "",
-        memo: "",
-      }));
-      setOpenInputModal(false);
-    } catch (e) {
-      setError(getApiErrorMessage(e, "採用データの保存に失敗しました"));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveWebView = async () => {
-    if (!webViewForm.site_name || webViewForm.page_views === "") {
-      setError("サイト名と閲覧数を入力してください");
-      return;
-    }
-
-    setSaving(true);
-    setError("");
-    try {
-      await api.saveWebViewRecord({
-        month,
-        ...webViewForm,
-      });
-      await loadRows(month);
-      setWebViewForm((prev) => ({
-        ...prev,
-        page_views: "",
-        unique_users: "",
-        entry_page_views: "",
-        memo: "",
-      }));
-      setOpenInputModal(false);
-    } catch (e) {
-      setError(getApiErrorMessage(e, "Web閲覧データの保存に失敗しました"));
     } finally {
       setSaving(false);
     }
@@ -226,17 +167,18 @@ const Home = () => {
           sx={{ width: { xs: "100%", md: 220 } }}
         />
         <InputMenuButton
-          onClick={() => {
-            setInputType("metric");
-            setOpenInputModal(true);
-          }}
+          onClick={() => setOpenInputModal(true)}
         />
         <ActionButtons onReload={() => loadRows(month)} />
       </Stack>
 
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          DB状態表示
+          応募指標DB
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          現在のバックエンドは応募指標データのみ対応しています。
         </Typography>
 
         {error && (
@@ -254,35 +196,13 @@ const Home = () => {
         )}
       </Paper>
 
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          採用DB
-        </Typography>
-        <RecruitmentPipelineTable rows={recruitmentPipelineRows} />
-      </Paper>
-
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Web閲覧DB
-        </Typography>
-        <WebViewsTable rows={webViewRows} />
-      </Paper>
-
       <UnifiedInputModal
         open={openInputModal}
         onClose={() => setOpenInputModal(false)}
-        inputType={inputType}
-        setInputType={setInputType}
-        metricForm={metricForm}
-        setMetricForm={setMetricForm}
-        metricDefinitions={metricDefinitions}
-        recruitmentForm={recruitmentForm}
-        setRecruitmentForm={setRecruitmentForm}
-        webViewForm={webViewForm}
-        setWebViewForm={setWebViewForm}
-        onSaveMetric={handleSaveMetric}
-        onSaveRecruitment={handleSaveRecruitment}
-        onSaveWebView={handleSaveWebView}
+        definitions={metricDefinitions}
+        form={metricForm}
+        setForm={setMetricForm}
+        onSave={handleSaveMetric}
         saving={saving}
       />
     </Box>
