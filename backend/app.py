@@ -57,11 +57,9 @@ class ApplicationMetricMonthlyRecord(db.Model):
 
     # 仕様: 指標によって内訳入力の有無がある
     target_total = db.Column(db.Integer, nullable=False, default=0)  # 目標（合計）
-    actual_total = db.Column(db.Integer, nullable=True)  # 実績（合計）
     actual_new_graduate = db.Column(db.Integer, nullable=True)  # 実績（新卒）
     actual_mid_career = db.Column(db.Integer, nullable=True)  # 実績（中途）
 
-    source = db.Column(db.String(50), nullable=False, default="手入力")  # データ取得元
     memo = db.Column(db.String(300), nullable=True)  # メモ
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # 作成日時
     updated_at = db.Column(
@@ -155,6 +153,89 @@ def drop_legacy_tables():
     db.session.commit()
 
 
+def migrate_application_metric_monthly_records_table():
+    # SQLiteで既存テーブルの不要カラムを取り除くために再作成して差し替える
+    table_name = "application_metric_monthly_records"
+    table_exists = db.session.execute(
+        text(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name"
+        ),
+        {"table_name": table_name},
+    ).first()
+
+    if not table_exists:
+        return
+
+    existing_columns = {
+        row[1]
+        for row in db.session.execute(
+            text(f"PRAGMA table_info({table_name})")
+        ).fetchall()
+    }
+
+    if "actual_total" not in existing_columns and "source" not in existing_columns:
+        return
+
+    db.session.execute(text("DROP TABLE IF EXISTS application_metric_monthly_records_new"))
+    db.session.execute(
+        text(
+            """
+            CREATE TABLE application_metric_monthly_records_new (
+                id INTEGER PRIMARY KEY,
+                metric_definition_id INTEGER NOT NULL,
+                target_month VARCHAR(7) NOT NULL,
+                target_total INTEGER NOT NULL DEFAULT 0,
+                actual_new_graduate INTEGER,
+                actual_mid_career INTEGER,
+                memo VARCHAR(300),
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                CONSTRAINT uniq_application_metric_month
+                    UNIQUE (metric_definition_id, target_month),
+                FOREIGN KEY(metric_definition_id)
+                    REFERENCES application_metric_definitions (id)
+            )
+            """
+        )
+    )
+    db.session.execute(
+        text(
+            """
+            INSERT INTO application_metric_monthly_records_new (
+                id,
+                metric_definition_id,
+                target_month,
+                target_total,
+                actual_new_graduate,
+                actual_mid_career,
+                memo,
+                created_at,
+                updated_at
+            )
+            SELECT
+                id,
+                metric_definition_id,
+                target_month,
+                target_total,
+                actual_new_graduate,
+                actual_mid_career,
+                memo,
+                created_at,
+                updated_at
+            FROM application_metric_monthly_records
+            """
+        )
+    )
+    db.session.execute(text("DROP TABLE application_metric_monthly_records"))
+    db.session.execute(
+        text(
+            "ALTER TABLE application_metric_monthly_records_new "
+            "RENAME TO application_metric_monthly_records"
+        )
+    )
+    db.session.commit()
+
+
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})
@@ -214,10 +295,8 @@ def list_application_metrics():
                 "metric_name": definition.name,
                 "supports_breakdown": definition.supports_breakdown,
                 "target_total": monthly_record.target_total,
-                "actual_total": monthly_record.actual_total,
                 "actual_new_graduate": monthly_record.actual_new_graduate,
                 "actual_mid_career": monthly_record.actual_mid_career,
-                "source": monthly_record.source,
                 "memo": monthly_record.memo,
             }
         )
@@ -231,7 +310,6 @@ def upsert_application_metric():
 
     month = payload.get("month") or payload.get("target_month")
     metric_definition_id = payload.get("metric_definition_id")
-    source = payload.get("source") or "手入力"
     memo = payload.get("memo")
 
     if not validate_month(month):
@@ -246,9 +324,18 @@ def upsert_application_metric():
 
     try:
         target_total = as_int(payload.get("target_total"), default_value=0)
-        actual_total = as_int(payload.get("actual_total"), default_value=0)
         actual_new_graduate = as_int(payload.get("actual_new_graduate"), default_value=0)
         actual_mid_career = as_int(payload.get("actual_mid_career"), default_value=0)
+
+        # 互換性維持: 旧クライアントのactual_total入力は新卒側へ寄せる
+        if (
+            not definition.supports_breakdown
+            and payload.get("actual_total") is not None
+            and payload.get("actual_new_graduate") in (None, "")
+            and payload.get("actual_mid_career") in (None, "")
+        ):
+            actual_new_graduate = as_int(payload.get("actual_total"), default_value=0)
+            actual_mid_career = 0
     except (TypeError, ValueError):
         return jsonify({"error": "数値項目は整数で指定してください"}), 400
 
@@ -265,15 +352,8 @@ def upsert_application_metric():
         db.session.add(record)
 
     record.target_total = target_total
-    if definition.supports_breakdown:
-        record.actual_total = None
-        record.actual_new_graduate = actual_new_graduate
-        record.actual_mid_career = actual_mid_career
-    else:
-        record.actual_total = actual_total
-        record.actual_new_graduate = None
-        record.actual_mid_career = None
-    record.source = source
+    record.actual_new_graduate = actual_new_graduate
+    record.actual_mid_career = actual_mid_career
     record.memo = memo
 
     db.session.commit()
@@ -284,6 +364,7 @@ def upsert_application_metric():
 with app.app_context():
     drop_legacy_tables()
     db.create_all()
+    migrate_application_metric_monthly_records_table()
     ensure_seed_data()
 
 
