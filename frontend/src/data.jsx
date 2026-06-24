@@ -26,7 +26,7 @@ const getCurrentMonth = () => {
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 // データ画面を表示
-const Home = () => {
+const Home = ({ onMetricsChanged }) => {
   const [selectedYear, setSelectedYear] = React.useState(String(new Date().getFullYear()));
   const [availableYears, setAvailableYears] = React.useState([String(new Date().getFullYear())]);
   const [metricDefinitions, setMetricDefinitions] = React.useState([]);
@@ -163,6 +163,9 @@ const Home = () => {
       const savedYear = metricForm.target_month.slice(0, 4);
       setSelectedYear(savedYear);
       await loadRows(savedYear);
+      if (onMetricsChanged) {
+        await onMetricsChanged();
+      }
       setMetricForm((prev) => ({
         ...prev,
         target_month: metricForm.target_month,
@@ -178,6 +181,13 @@ const Home = () => {
       setModalError("保存に失敗しました");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleReload = async () => {
+    await loadRows(selectedYear);
+    if (onMetricsChanged) {
+      await onMetricsChanged();
     }
   };
 
@@ -212,7 +222,7 @@ const Home = () => {
             setOpenInputModal(true);
           }}
         />
-        <ActionButtons onReload={() => loadRows(selectedYear)} />
+        <ActionButtons onReload={handleReload} />
       </Stack>
 
       <Paper sx={{ p: { xs: 2, md: 3 } }}>

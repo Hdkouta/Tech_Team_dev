@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Home from "./data";
 import * as api from "./api";
 
@@ -60,58 +60,66 @@ function App() {
   const [showDataView, setShowDataView] = useState(false);
   const [metricDefinitions, setMetricDefinitions] = useState([]);
 
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const [definitionsResponse, metricsResponse] =
+        await Promise.all([
+          api.getApplicationMetricDefinitions(),
+          api.getApplicationMetrics(),
+        ]);
+
+      const definitions = Array.isArray(definitionsResponse)
+        ? definitionsResponse
+        : [];
+
+      const realRows = normalizeMetricRows(
+        metricsResponse.rows || []
+      );
+
+      setMetricDefinitions(definitions);
+      setAllRows(realRows);
+
+      const months = Array.from(
+        new Set(realRows.map((row) => row.target_month))
+      ).sort();
+
+      const latestMonth = months[months.length - 1] || "";
+      const latestYear = latestMonth
+        ? latestMonth.slice(0, 4)
+        : "";
+
+      setSelectedYear((prev) => (prev ? prev : latestYear));
+      setSelectedMonth((prev) =>
+        prev && months.includes(prev) ? prev : latestMonth
+      );
+    } catch (e) {
+      setMetricDefinitions([]);
+      setAllRows([]);
+      setSelectedYear("");
+      setSelectedMonth("");
+      setError("API取得に失敗しました。");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // =========================
   // 初期ロード
   // =========================
   useEffect(() => {
-    const loadDashboard = async () => {
-      setLoading(true);
-      setError("");
-
-      try {
-        const [definitionsResponse, metricsResponse] =
-          await Promise.all([
-            api.getApplicationMetricDefinitions(),
-            api.getApplicationMetrics(),
-          ]);
-
-        const definitions = Array.isArray(definitionsResponse)
-          ? definitionsResponse
-          : [];
-
-        const realRows = normalizeMetricRows(
-          metricsResponse.rows || []
-        );
-
-        setMetricDefinitions(definitions);
-        setAllRows(realRows);
-
-        const months = Array.from(
-          new Set(realRows.map((row) => row.target_month))
-        ).sort();
-
-        const latestMonth = months[months.length - 1] || "";
-        const latestYear = latestMonth
-          ? latestMonth.slice(0, 4)
-          : "";
-
-        setSelectedYear((prev) => (prev ? prev : latestYear));
-        setSelectedMonth((prev) =>
-          prev && months.includes(prev) ? prev : latestMonth
-        );
-      } catch (e) {
-        setMetricDefinitions([]);
-        setAllRows([]);
-        setSelectedYear("");
-        setSelectedMonth("");
-        setError("API取得に失敗しました。");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadDashboard();
-  }, []);
+  }, [loadDashboard]);
+
+  const handleToggleView = async () => {
+    if (showDataView) {
+      // データ入力画面から戻る時に最新データを再取得
+      await loadDashboard();
+    }
+    setShowDataView((prev) => !prev);
+  };
 
   // =========================
   // 月・年オプション
@@ -242,14 +250,12 @@ function App() {
             setSelectedMonth(`${selectedYear}-${m}`)
           }
           showDataView={showDataView}
-          onToggleView={() =>
-            setShowDataView((prev) => !prev)
-          }
+          onToggleView={handleToggleView}
         />
       </div>
 
       {showDataView ? (
-        <Home />
+        <Home onMetricsChanged={loadDashboard} />
       ) : (
         <div className="p-4 flex flex-col gap-4">
 
