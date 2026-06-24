@@ -5,9 +5,6 @@ const QuickBtns = () => {
   return (
     <div className="bg-white p-2 rounded shadow flex flex-wrap gap-2">
       <button className="bg-blue-500 text-white px-3 py-1 rounded">＋</button>
-      <button className="border px-3 py-1 rounded">メモ</button>
-      <button className="border px-3 py-1 rounded">🔄</button>
-      <button className="border px-3 py-1 rounded">📊</button>
     </div>
   );
 };

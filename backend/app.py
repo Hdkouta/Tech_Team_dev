@@ -28,46 +28,45 @@ class ApplicationMetricDefinition(db.Model):
     # 応募指標マスタ
     __tablename__ = "application_metric_definitions"
 
-    id = db.Column(db.Integer, primary_key=True)  # 指標ID
-    code = db.Column(db.String(100), nullable=False, unique=True)  # 指標コード（システム識別子）
-    name = db.Column(db.String(200), nullable=False)  # 指標名（画面表示用）
-    supports_breakdown = db.Column(db.Boolean, nullable=False, default=False)  # 新卒/中途の内訳入力有無
-    display_order = db.Column(db.Integer, nullable=False, default=0)  # 表示順
-    is_active = db.Column(db.Boolean, nullable=False, default=True)  # 有効フラグ
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # 作成日時
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(200), nullable=False)
+    supports_breakdown = db.Column(db.Boolean, nullable=False, default=False)
+    display_order = db.Column(db.Integer, nullable=False, default=0)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime,
         nullable=False,
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
-    )  # 更新日時
+    )
 
 
 class ApplicationMetricMonthlyRecord(db.Model):
     # 応募指標の月次データ
     __tablename__ = "application_metric_monthly_records"
 
-    id = db.Column(db.Integer, primary_key=True)  # レコードID
+    id = db.Column(db.Integer, primary_key=True)
     metric_definition_id = db.Column(
         db.Integer,
         db.ForeignKey("application_metric_definitions.id"),
         nullable=False,
-    )  # 指標ID（application_metric_definitions.id）
-    target_month = db.Column(db.String(7), nullable=False)  # 対象月（YYYY-MM）
+    )
+    target_month = db.Column(db.String(7), nullable=False)
 
-    # 仕様: 指標によって内訳入力の有無がある
-    target_total = db.Column(db.Integer, nullable=False, default=0)  # 目標（合計）
-    actual_new_graduate = db.Column(db.Integer, nullable=True)  # 実績（新卒）
-    actual_mid_career = db.Column(db.Integer, nullable=True)  # 実績（中途）
+    target_total = db.Column(db.Integer, nullable=False, default=0)
+    actual_new_graduate = db.Column(db.Integer, nullable=True)
+    actual_mid_career = db.Column(db.Integer, nullable=True)
 
-    memo = db.Column(db.String(300), nullable=True)  # メモ
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # 作成日時
+    memo = db.Column(db.String(300), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime,
         nullable=False,
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
-    )  # 更新日時
+    )
 
     __table_args__ = (
         db.UniqueConstraint(
@@ -136,29 +135,34 @@ def ensure_seed_data():
             display_order=7,
         ),
     ]
+
     db.session.add_all(seed_metrics)
     db.session.commit()
 
 
 def drop_legacy_tables():
-    # 旧構成（KPI/採用工程/Web閲覧）のテーブルを削除して応募専用DBへ統一
+    # 旧構成のテーブルを削除
     legacy_tables = [
         "metric_monthly_records",
         "metric_definitions",
         "recruitment_pipeline_records",
         "web_view_records",
     ]
+
     for table_name in legacy_tables:
         db.session.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
+
     db.session.commit()
 
 
 def migrate_application_metric_monthly_records_table():
     # SQLiteで既存テーブルの不要カラムを取り除くために再作成して差し替える
     table_name = "application_metric_monthly_records"
+
     table_exists = db.session.execute(
         text(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name"
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name=:table_name"
         ),
         {"table_name": table_name},
     ).first()
@@ -177,6 +181,7 @@ def migrate_application_metric_monthly_records_table():
         return
 
     db.session.execute(text("DROP TABLE IF EXISTS application_metric_monthly_records_new"))
+
     db.session.execute(
         text(
             """
@@ -198,6 +203,7 @@ def migrate_application_metric_monthly_records_table():
             """
         )
     )
+
     db.session.execute(
         text(
             """
@@ -226,6 +232,7 @@ def migrate_application_metric_monthly_records_table():
             """
         )
     )
+
     db.session.execute(text("DROP TABLE application_metric_monthly_records"))
     db.session.execute(
         text(
@@ -233,6 +240,7 @@ def migrate_application_metric_monthly_records_table():
             "RENAME TO application_metric_monthly_records"
         )
     )
+
     db.session.commit()
 
 
@@ -244,7 +252,8 @@ def health():
 @app.route("/api/application-metric-definitions", methods=["GET"])
 def list_application_metric_definitions():
     items = (
-        ApplicationMetricDefinition.query.filter(ApplicationMetricDefinition.is_active.is_(True))
+        ApplicationMetricDefinition.query
+        .filter(ApplicationMetricDefinition.is_active.is_(True))
         .order_by(ApplicationMetricDefinition.display_order.asc())
         .all()
     )
@@ -270,7 +279,10 @@ def list_application_metrics():
     if month and not validate_month(month):
         return jsonify({"error": "month は YYYY-MM 形式で指定してください"}), 400
 
-    query = db.session.query(ApplicationMetricMonthlyRecord, ApplicationMetricDefinition).join(
+    query = db.session.query(
+        ApplicationMetricMonthlyRecord,
+        ApplicationMetricDefinition
+    ).join(
         ApplicationMetricDefinition,
         ApplicationMetricMonthlyRecord.metric_definition_id == ApplicationMetricDefinition.id,
     )
@@ -284,6 +296,7 @@ def list_application_metrics():
     ).all()
 
     rows = []
+
     for monthly_record, definition in records:
         rows.append(
             {
@@ -319,6 +332,7 @@ def upsert_application_metric():
         return jsonify({"error": "metric_definition_id は整数で指定してください"}), 400
 
     definition = db.session.get(ApplicationMetricDefinition, metric_definition_id)
+
     if definition is None:
         return jsonify({"error": "指定された指標が存在しません"}), 404
 
@@ -327,7 +341,7 @@ def upsert_application_metric():
         actual_new_graduate = as_int(payload.get("actual_new_graduate"), default_value=0)
         actual_mid_career = as_int(payload.get("actual_mid_career"), default_value=0)
 
-        # 互換性維持: 旧クライアントのactual_total入力は新卒側へ寄せる
+        # 旧クライアントの actual_total 入力を新卒側へ寄せる
         if (
             not definition.supports_breakdown
             and payload.get("actual_total") is not None
@@ -336,6 +350,7 @@ def upsert_application_metric():
         ):
             actual_new_graduate = as_int(payload.get("actual_total"), default_value=0)
             actual_mid_career = 0
+
     except (TypeError, ValueError):
         return jsonify({"error": "数値項目は整数で指定してください"}), 400
 
