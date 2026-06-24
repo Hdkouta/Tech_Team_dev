@@ -31,12 +31,17 @@ const Home = () => {
   const [availableYears, setAvailableYears] = React.useState([String(new Date().getFullYear())]);
   const [metricDefinitions, setMetricDefinitions] = React.useState([]);
   const [metricRows, setMetricRows] = React.useState([]);
+
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [modalError, setModalError] = React.useState("");
 
   const [openInputModal, setOpenInputModal] = React.useState(false);
+
+  const [openEditModal, setOpenEditModal] = React.useState(false);
+  const [editModalError, setEditModalError] = React.useState("");
+  const [editingRow, setEditingRow] = React.useState(null);
 
   const [metricForm, setMetricForm] = React.useState({
     metric_definition_id: "",
@@ -48,13 +53,26 @@ const Home = () => {
     memo: "",
   });
 
+  const [editForm, setEditForm] = React.useState({
+    id: "",
+    metric_definition_id: "",
+    target_month: "",
+    target_total: "",
+    actual_total: "",
+    actual_new_graduate: "",
+    actual_mid_career: "",
+    memo: "",
+  });
+
   // 年で絞って一覧を読み込む
   const loadRows = React.useCallback(async (targetYear) => {
     setLoading(true);
     setError("");
+
     try {
       const metricData = await api.getMetrics();
       const allRows = metricData.rows || [];
+
       const detectedYears = Array.from(
         new Set(
           allRows
@@ -65,13 +83,17 @@ const Home = () => {
 
       setAvailableYears((prev) => {
         const years = detectedYears.length > 0 ? detectedYears : prev;
+
         if (targetYear && !years.includes(targetYear)) {
           return [...years, targetYear].sort((a, b) => Number(a) - Number(b));
         }
+
         return years;
       });
 
-      const filteredRows = allRows.filter((row) => row.target_month?.startsWith(`${targetYear}-`));
+      const filteredRows = allRows.filter((row) =>
+        row.target_month?.startsWith(`${targetYear}-`)
+      );
 
       const normalizedRows = normalizeMetricRows(filteredRows);
       setMetricRows(normalizedRows);
@@ -86,12 +108,19 @@ const Home = () => {
     const initialize = async () => {
       setLoading(true);
       setError("");
+
       try {
-        const [definitions] = await Promise.all([api.getMetricDefinitions(), loadRows(selectedYear)]);
+        const definitions = await api.getMetricDefinitions();
         setMetricDefinitions(definitions);
+
         if (definitions.length > 0) {
-          setMetricForm((prev) => ({ ...prev, metric_definition_id: definitions[0].id }));
+          setMetricForm((prev) => ({
+            ...prev,
+            metric_definition_id: definitions[0].id,
+          }));
         }
+
+        await loadRows(selectedYear);
       } catch {
         setError("初期データの取得に失敗しました");
       } finally {
@@ -100,14 +129,35 @@ const Home = () => {
     };
 
     initialize();
-  }, [selectedYear]);
+  }, [selectedYear, loadRows]);
 
-  // 入力データを保存
+  // 編集ボタン押下時に、対象行のデータを編集フォームにセットする
+  const handleOpenEditModal = (row) => {
+    setEditModalError("");
+    setEditingRow(row);
+
+    setEditForm({
+      id: row.id,
+      metric_definition_id: row.metric_definition_id,
+      target_month: row.target_month || row.month || "",
+      target_total: row.target_total ?? "",
+      actual_total: row.actual_total ?? "",
+      actual_new_graduate: row.actual_new_graduate ?? "",
+      actual_mid_career: row.actual_mid_career ?? "",
+      memo: row.memo ?? "",
+    });
+
+    setOpenEditModal(true);
+  };
+
+  // 入力データを新規保存する
   const handleSaveMetric = async () => {
     setModalError("");
 
     const selectedDefinition =
-      metricDefinitions.find((item) => item.id === Number(metricForm.metric_definition_id)) || null;
+      metricDefinitions.find(
+        (item) => item.id === Number(metricForm.metric_definition_id)
+      ) || null;
 
     if (
       !metricForm.metric_definition_id ||
@@ -134,10 +184,11 @@ const Home = () => {
 
     try {
       const allMetrics = await api.getMetrics();
+
       const hasDuplicateMonth = (allMetrics.rows || []).some(
         (row) =>
-          Number(row.metric_definition_id) === Number(metricForm.metric_definition_id)
-          && row.target_month === metricForm.target_month,
+          Number(row.metric_definition_id) === Number(metricForm.metric_definition_id) &&
+          row.target_month === metricForm.target_month,
       );
 
       if (hasDuplicateMonth) {
@@ -151,7 +202,9 @@ const Home = () => {
         month: metricForm.target_month,
         metric_definition_id: Number(metricForm.metric_definition_id),
         target_total: Number(metricForm.target_total),
-        actual_total: selectedDefinition?.supports_breakdown ? 0 : Number(metricForm.actual_total),
+        actual_total: selectedDefinition?.supports_breakdown
+          ? 0
+          : Number(metricForm.actual_total),
         actual_new_graduate: selectedDefinition?.supports_breakdown
           ? Number(metricForm.actual_new_graduate)
           : Number(metricForm.actual_total),
@@ -160,9 +213,12 @@ const Home = () => {
           : 0,
         memo: metricForm.memo,
       });
+
       const savedYear = metricForm.target_month.slice(0, 4);
+
       setSelectedYear(savedYear);
       await loadRows(savedYear);
+
       setMetricForm((prev) => ({
         ...prev,
         target_month: metricForm.target_month,
@@ -172,10 +228,130 @@ const Home = () => {
         actual_mid_career: "",
         memo: "",
       }));
+
       setModalError("");
       setOpenInputModal(false);
-    } catch {
-      setModalError("保存に失敗しました");
+    } catch (error) {
+      const message = error?.response?.data?.error || "保存に失敗しました";
+      setModalError(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 編集データを更新する
+  console.log("更新対象 editForm:", editForm);
+  const handleUpdateMetric = async () => {
+    setEditModalError("");
+
+    if (!editForm.id) {
+      setEditModalError("更新対象のIDが取得できません");
+      return;
+    }
+
+    if (
+      !editForm.metric_definition_id ||
+      !editForm.target_month ||
+      editForm.target_total === ""
+    ) {
+      setEditModalError("指標、対象年月、目標（合計）を入力してください");
+      return;
+    }
+
+    if (!MONTH_PATTERN.test(editForm.target_month)) {
+      setEditModalError("対象年月はYYYY-MM形式で入力してください");
+      return;
+    }
+
+    const selectedDefinition =
+      metricDefinitions.find(
+        (item) => item.id === Number(editForm.metric_definition_id)
+      ) || null;
+
+    if (
+      selectedDefinition?.supports_breakdown
+        ? editForm.actual_new_graduate === "" || editForm.actual_mid_career === ""
+        : editForm.actual_total === ""
+    ) {
+      setEditModalError("実績値を入力してください");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await api.updateApplicationMetric(editForm.id, {
+        target_month: editForm.target_month,
+        target_total: Number(editForm.target_total),
+        actual_total: selectedDefinition?.supports_breakdown
+          ? 0
+          : Number(editForm.actual_total),
+        actual_new_graduate: selectedDefinition?.supports_breakdown
+          ? Number(editForm.actual_new_graduate)
+          : Number(editForm.actual_total),
+        actual_mid_career: selectedDefinition?.supports_breakdown
+          ? Number(editForm.actual_mid_career)
+          : 0,
+        memo: editForm.memo,
+      });
+
+      const updatedYear = editForm.target_month.slice(0, 4);
+
+      setSelectedYear(updatedYear);
+      await loadRows(updatedYear);
+
+      setEditModalError("");
+      setOpenEditModal(false);
+      setEditingRow(null);
+    } catch (error) {
+      console.error("更新エラー:", error);
+      console.error("更新エラー詳細:", error?.response?.data);
+
+      const message =
+        error?.response?.data?.error || "更新に失敗しました";
+
+      setEditModalError(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 編集データを削除する
+  console.log("削除対象 editingRow:", editingRow);
+  const handleDeleteMetric = async () => {
+    setEditModalError("");
+
+    if (!editingRow?.id) {
+      setEditModalError("削除対象のIDが取得できません");
+      return;
+    }
+
+    const confirmed = window.confirm("このデータを削除します。よろしいですか？");
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await api.deleteApplicationMetric(editingRow.id);
+
+      const deletedYear = (editingRow.target_month || editingRow.month || selectedYear).slice(0, 4);
+
+      await loadRows(deletedYear);
+
+      setEditModalError("");
+      setOpenEditModal(false);
+      setEditingRow(null);
+    } catch (error) {
+      console.error("削除エラー:", error);
+      console.error("削除エラー詳細:", error?.response?.data);
+
+      const message =
+        error?.response?.data?.error || "削除に失敗しました";
+
+      setEditModalError(message);
     } finally {
       setSaving(false);
     }
@@ -183,7 +359,11 @@ const Home = () => {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3, alignItems: "stretch" }}>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={2}
+        sx={{ mb: 3, alignItems: "stretch" }}
+      >
         <TextField
           label="対象年"
           select
@@ -201,17 +381,22 @@ const Home = () => {
             </MenuItem>
           ))}
         </TextField>
+
         <InputMenuButton
           onClick={() => {
             setModalError("");
+
             const currentMonthNumber = String(new Date().getMonth() + 1).padStart(2, "0");
+
             setMetricForm((prev) => ({
               ...prev,
               target_month: `${selectedYear}-${currentMonthNumber}`,
             }));
+
             setOpenInputModal(true);
           }}
         />
+
         <ActionButtons onReload={() => loadRows(selectedYear)} />
       </Stack>
 
@@ -231,7 +416,7 @@ const Home = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <MetricsTable rows={metricRows} />
+          <MetricsTable rows={metricRows} onEdit={handleOpenEditModal} />
         )}
       </Paper>
 
@@ -241,12 +426,31 @@ const Home = () => {
           setModalError("");
           setOpenInputModal(false);
         }}
+        title="応募データ入力"
         definitions={metricDefinitions}
         form={metricForm}
         setForm={setMetricForm}
         errorMessage={modalError}
         onSave={handleSaveMetric}
         saving={saving}
+      />
+
+      <UnifiedInputModal
+        open={openEditModal}
+        onClose={() => {
+          setEditModalError("");
+          setOpenEditModal(false);
+          setEditingRow(null);
+        }}
+        title="応募データ編集"
+        definitions={metricDefinitions}
+        form={editForm}
+        setForm={setEditForm}
+        errorMessage={editModalError}
+        onSave={handleUpdateMetric}
+        saving={saving}
+        showDeleteButton
+        onDelete={handleDeleteMetric}
       />
     </Box>
   );

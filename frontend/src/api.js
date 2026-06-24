@@ -30,6 +30,19 @@ export const upsertApplicationMetric = async (payload) => {
   return response.data
 }
 
+// 応募指標データを更新
+export const updateApplicationMetric = async (recordId, payload) => {
+  const response = await api.put(`/api/application-metrics/${recordId}`, payload)
+  return response.data
+}
+
+// 応募指標データを削除
+export const deleteApplicationMetric = async (recordId) => {
+  const response = await api.delete(`/api/application-metrics/${recordId}`)
+  return response.data
+}
+
+
 // data.jsx が参照する旧関数名との互換レイヤー
 // 旧名で指標マスタを取得
 export const getMetricDefinitions = async () => getApplicationMetricDefinitions()
