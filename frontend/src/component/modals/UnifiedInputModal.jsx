@@ -56,12 +56,15 @@ const formatPercent = (value) => {
 const UnifiedInputModal = ({
   open,
   onClose,
+  title = "応募データ入力",
   definitions = [],
   form = {},
-  setForm = () => {},
+  setForm = () => { },
   errorMessage = "",
-  onSave = () => {},
+  onSave = () => { },
   saving = false,
+  showDeleteButton = false,
+  onDelete = () => { },
 }) => {
   const now = new Date();
   const [openMonthPicker, setOpenMonthPicker] = React.useState(false);
@@ -145,7 +148,7 @@ const UnifiedInputModal = ({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>応募データ入力</DialogTitle>
+      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           {errorMessage && (
@@ -247,11 +250,27 @@ const UnifiedInputModal = ({
           />
         </Stack>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>キャンセル</Button>
-        <Button variant="contained" onClick={onSave} disabled={saving}>
-          保存
-        </Button>
+      <DialogActions sx={{ justifyContent: "space-between" }}>
+        <Box>
+          {showDeleteButton && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={onDelete}
+            >
+              削除
+            </Button>
+          )}
+        </Box>
+
+        <Box>
+          <Button onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button variant="contained" onClick={onSave} disabled={saving}>
+            保存
+          </Button>
+        </Box>
       </DialogActions>
 
       <Dialog open={openMonthPicker} onClose={() => setOpenMonthPicker(false)} fullWidth maxWidth="xs">
@@ -267,7 +286,7 @@ const UnifiedInputModal = ({
                 }
               }}
               renderInput={(params) => (
-                <TextField {...params} label="年"  />
+                <TextField {...params} label="年" />
               )}
             />
 
