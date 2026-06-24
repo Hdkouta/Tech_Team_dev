@@ -153,6 +153,59 @@ def drop_legacy_tables():
     db.session.commit()
 
 
+def migrate_application_metric_definitions_table():
+    # 既存DBに created_at / updated_at が無い場合は列を追加
+    table_name = "application_metric_definitions"
+    table_exists = db.session.execute(
+        text(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name"
+        ),
+        {"table_name": table_name},
+    ).first()
+
+    if not table_exists:
+        return
+
+    existing_columns = {
+        row[1]
+        for row in db.session.execute(
+            text(f"PRAGMA table_info({table_name})")
+        ).fetchall()
+    }
+
+    if "created_at" not in existing_columns:
+        db.session.execute(
+            text(
+                "ALTER TABLE application_metric_definitions "
+                "ADD COLUMN created_at DATETIME"
+            )
+        )
+        db.session.execute(
+            text(
+                "UPDATE application_metric_definitions "
+                "SET created_at = CURRENT_TIMESTAMP "
+                "WHERE created_at IS NULL"
+            )
+        )
+
+    if "updated_at" not in existing_columns:
+        db.session.execute(
+            text(
+                "ALTER TABLE application_metric_definitions "
+                "ADD COLUMN updated_at DATETIME"
+            )
+        )
+        db.session.execute(
+            text(
+                "UPDATE application_metric_definitions "
+                "SET updated_at = CURRENT_TIMESTAMP "
+                "WHERE updated_at IS NULL"
+            )
+        )
+
+    db.session.commit()
+
+
 def migrate_application_metric_monthly_records_table():
     # SQLiteで既存テーブルの不要カラムを取り除くために再作成して差し替える
     table_name = "application_metric_monthly_records"
@@ -172,6 +225,46 @@ def migrate_application_metric_monthly_records_table():
             text(f"PRAGMA table_info({table_name})")
         ).fetchall()
     }
+
+    # 既存DBに created_at / updated_at が無い場合は列を追加
+    if "created_at" not in existing_columns:
+        db.session.execute(
+            text(
+                "ALTER TABLE application_metric_monthly_records "
+                "ADD COLUMN created_at DATETIME"
+            )
+        )
+        db.session.execute(
+            text(
+                "UPDATE application_metric_monthly_records "
+                "SET created_at = CURRENT_TIMESTAMP "
+                "WHERE created_at IS NULL"
+            )
+        )
+
+    if "updated_at" not in existing_columns:
+        db.session.execute(
+            text(
+                "ALTER TABLE application_metric_monthly_records "
+                "ADD COLUMN updated_at DATETIME"
+            )
+        )
+        db.session.execute(
+            text(
+                "UPDATE application_metric_monthly_records "
+                "SET updated_at = CURRENT_TIMESTAMP "
+                "WHERE updated_at IS NULL"
+            )
+        )
+
+    if "created_at" not in existing_columns or "updated_at" not in existing_columns:
+        db.session.commit()
+        existing_columns = {
+            row[1]
+            for row in db.session.execute(
+                text(f"PRAGMA table_info({table_name})")
+            ).fetchall()
+        }
 
     if "actual_total" not in existing_columns and "source" not in existing_columns:
         return
@@ -364,6 +457,7 @@ def upsert_application_metric():
 with app.app_context():
     drop_legacy_tables()
     db.create_all()
+    migrate_application_metric_definitions_table()
     migrate_application_metric_monthly_records_table()
     ensure_seed_data()
 
