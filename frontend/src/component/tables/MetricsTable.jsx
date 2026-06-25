@@ -36,7 +36,7 @@ const MetricsTable = ({ rows, onEdit = () => { } }) => {
               対象年月
             </TableCell>
             <TableCell sx={{ fontSize: "0.98rem", fontWeight: 700, py: 1.5, backgroundColor: "#f8fafc" }}>
-              応募指標
+              選考データ
             </TableCell>
             <TableCell align="center" sx={{ fontSize: "0.98rem", fontWeight: 700, py: 1.5, backgroundColor: "#f8fafc" }}>
               <span style={{ display: "inline-block", textAlign: "center", lineHeight: 1.2 }}>

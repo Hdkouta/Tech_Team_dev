@@ -157,21 +157,23 @@ const UnifiedInputModal = ({
             </Typography>
           )}
 
-          <FormControl fullWidth>
-            <InputLabel id="application-metric-label">入力種別</InputLabel>
-            <Select
-              labelId="application-metric-label"
-              label="入力種別"
-              value={safeForm.metric_definition_id}
-              onChange={(e) => handleDefinitionChange(e.target.value)}
-            >
-              {definitions.map((item) => (
-                <MenuItem key={item.id} value={item.id}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {!showDeleteButton && (
+            <FormControl fullWidth>
+              <InputLabel id="application-metric-label">入力種別</InputLabel>
+              <Select
+                labelId="application-metric-label"
+                label="入力種別"
+                value={safeForm.metric_definition_id}
+                onChange={(e) => handleDefinitionChange(e.target.value)}
+              >
+                {definitions.map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           <Typography variant="body2" color="text.secondary">
             対象年月: {safeForm.target_month || "未選択"}

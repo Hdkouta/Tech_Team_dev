@@ -144,21 +144,6 @@ def ensure_seed_data():
     db.session.commit()
 
 
-def drop_legacy_tables():
-    # 旧構成（KPI/採用工程/Web閲覧）のテーブルを削除
-    legacy_tables = [
-        "metric_monthly_records",
-        "metric_definitions",
-        "recruitment_pipeline_records",
-        "web_view_records",
-    ]
-
-    for table_name in legacy_tables:
-        db.session.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
-
-    db.session.commit()
-
-
 def migrate_application_metric_definitions_table():
     """
     application_metric_definitions から created_at / updated_at を削除する。
@@ -582,7 +567,6 @@ def application_metric_item_options(record_id):
 
 
 with app.app_context():
-    drop_legacy_tables()
     db.create_all()
     migrate_application_metric_definitions_table()
     migrate_application_metric_monthly_records_table()
