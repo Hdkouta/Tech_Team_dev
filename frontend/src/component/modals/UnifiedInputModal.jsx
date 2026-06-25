@@ -182,7 +182,7 @@ const UnifiedInputModal = ({
           </Button>
 
           <TextField
-            label="目標（合計）"
+            label="合計（目標）"
             type="number"
             value={safeForm.target_total}
             onChange={(e) => setForm((prev) => ({ ...prev, target_total: e.target.value }))}
@@ -192,7 +192,7 @@ const UnifiedInputModal = ({
           {selectedDefinition?.supports_breakdown ? (
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
-                label="実績（新卒）"
+                label="新卒（実績）"
                 type="number"
                 value={safeForm.actual_new_graduate}
                 onChange={(e) =>
@@ -201,7 +201,7 @@ const UnifiedInputModal = ({
                 fullWidth
               />
               <TextField
-                label="実績（中途）"
+                label="中途（実績）"
                 type="number"
                 value={safeForm.actual_mid_career}
                 onChange={(e) =>
@@ -212,7 +212,7 @@ const UnifiedInputModal = ({
             </Stack>
           ) : (
             <TextField
-              label="実績（合計）"
+              label="合計（実績）"
               type="number"
               value={safeForm.actual_total}
               onChange={(e) => setForm((prev) => ({ ...prev, actual_total: e.target.value }))}
@@ -230,7 +230,7 @@ const UnifiedInputModal = ({
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              実績（合計）: {actualTotal.toLocaleString("ja-JP")}
+              合計（実績）: {actualTotal.toLocaleString("ja-JP")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               乖離: {gap.toLocaleString("ja-JP")}

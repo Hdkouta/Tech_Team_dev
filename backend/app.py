@@ -82,55 +82,65 @@ def as_int(value, default_value=0):
 
 
 def ensure_seed_data():
-    if ApplicationMetricDefinition.query.count() > 0:
-        return
-
     seed_metrics = [
-        ApplicationMetricDefinition(
-            code="total_entries_with_scout",
-            name="総エントリー数（スカウトも含む）",
-            supports_breakdown=True,
-            display_order=1,
-        ),
-        ApplicationMetricDefinition(
-            code="own_entries_with_referral",
-            name="自社エントリー数（社内紹介を含む）",
-            supports_breakdown=True,
-            display_order=2,
-        ),
-        ApplicationMetricDefinition(
-            code="own_entries_first_interview",
-            name="自社エントリー数 1次面接",
-            supports_breakdown=False,
-            display_order=3,
-        ),
-        ApplicationMetricDefinition(
-            code="own_entries_second_interview",
-            name="自社エントリー数 2次面接",
-            supports_breakdown=False,
-            display_order=4,
-        ),
-        ApplicationMetricDefinition(
-            code="own_entries_final_interview",
-            name="自社エントリー数 最終面接",
-            supports_breakdown=False,
-            display_order=5,
-        ),
-        ApplicationMetricDefinition(
-            code="own_entries_offer_notice",
-            name="自社エントリー数 内定通知",
-            supports_breakdown=False,
-            display_order=6,
-        ),
-        ApplicationMetricDefinition(
-            code="own_entries_offer_acceptance",
-            name="自社エントリー数 内定承諾",
-            supports_breakdown=False,
-            display_order=7,
-        ),
+        {
+            "code": "total_entries_with_scout",
+            "name": "総エントリー数（スカウトも含む）",
+            "supports_breakdown": True,
+            "display_order": 1,
+        },
+        {
+            "code": "own_entries_with_referral",
+            "name": "自社エントリー数（社内紹介を含む）",
+            "supports_breakdown": True,
+            "display_order": 2,
+        },
+        {
+            "code": "own_entries_first_interview",
+            "name": "1次面接",
+            "supports_breakdown": False,
+            "display_order": 3,
+        },
+        {
+            "code": "own_entries_second_interview",
+            "name": "2次面接",
+            "supports_breakdown": False,
+            "display_order": 4,
+        },
+        {
+            "code": "own_entries_final_interview",
+            "name": "最終面接",
+            "supports_breakdown": False,
+            "display_order": 5,
+        },
+        {
+            "code": "own_entries_offer_notice",
+            "name": "内定通知",
+            "supports_breakdown": False,
+            "display_order": 6,
+        },
+        {
+            "code": "own_entries_offer_acceptance",
+            "name": "内定承諾",
+            "supports_breakdown": False,
+            "display_order": 7,
+        },
     ]
 
-    db.session.add_all(seed_metrics)
+    for metric in seed_metrics:
+        existing = ApplicationMetricDefinition.query.filter_by(
+            code=metric["code"]
+        ).first()
+
+        if existing is None:
+            db.session.add(ApplicationMetricDefinition(**metric))
+            continue
+
+        existing.name = metric["name"]
+        existing.supports_breakdown = metric["supports_breakdown"]
+        existing.display_order = metric["display_order"]
+        existing.is_active = True
+
     db.session.commit()
 
 

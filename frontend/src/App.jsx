@@ -9,8 +9,9 @@ import YearCompareChart from "./component/graph/YearChart";
 
 import TopPick from "./component/panel/TopPick";
 import KpiCards from "./component/panel/KpiCards";
-import QuickBtns from "./component/panel/QuickBtns";
 import MiniInfo from "./component/panel/MiniInfo";
+import LatestInputData from "./component/panel/LatestInputData";
+import UnifiedInputModal from "./component/modals/UnifiedInputModal";
 
 import {
   makeFunnelSeries,
@@ -19,6 +20,8 @@ import {
   makeYoySeries,
   normalizeMetricRows,
 } from "./dataMath";
+
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 // =========================
 // 月表示フォーマット関数（追加）
@@ -54,6 +57,18 @@ function App() {
   const [allRows, setAllRows] = useState([]);
   const [selectedYear, setSelectedYear] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [openInputModal, setOpenInputModal] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [metricForm, setMetricForm] = useState({
+    metric_definition_id: "",
+    target_month: "",
+    target_total: "",
+    actual_total: "",
+    actual_new_graduate: "",
+    actual_mid_career: "",
+    memo: "",
+  });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -119,6 +134,106 @@ function App() {
       await loadDashboard();
     }
     setShowDataView((prev) => !prev);
+  };
+
+  const handleOpenInputFromDashboard = () => {
+    const requestYear = selectedYear || String(new Date().getFullYear());
+    const currentMonthNumber = String(new Date().getMonth() + 1).padStart(2, "0");
+
+    setModalError("");
+    setMetricForm((prev) => ({
+      ...prev,
+      metric_definition_id:
+        prev.metric_definition_id || metricDefinitions[0]?.id || "",
+      target_month: `${requestYear}-${currentMonthNumber}`,
+    }));
+    setOpenInputModal(true);
+  };
+
+  const handleSaveMetric = async () => {
+    setModalError("");
+
+    const selectedDefinition =
+      metricDefinitions.find(
+        (item) => item.id === Number(metricForm.metric_definition_id)
+      ) || null;
+
+    if (
+      !metricForm.metric_definition_id ||
+      !metricForm.target_month ||
+      metricForm.target_total === ""
+    ) {
+      setModalError("指標、対象年月、目標（合計）を入力してください");
+      return;
+    }
+
+    if (!MONTH_PATTERN.test(metricForm.target_month)) {
+      setModalError("対象年月はYYYY-MM形式で入力してください");
+      return;
+    }
+
+    if (
+      selectedDefinition?.supports_breakdown
+        ? metricForm.actual_new_graduate === "" || metricForm.actual_mid_career === ""
+        : metricForm.actual_total === ""
+    ) {
+      setModalError("実績値を入力してください");
+      return;
+    }
+
+    try {
+      const allMetrics = await api.getApplicationMetrics();
+      const hasDuplicateMonth = (allMetrics.rows || []).some(
+        (row) =>
+          Number(row.metric_definition_id) === Number(metricForm.metric_definition_id) &&
+          row.target_month === metricForm.target_month
+      );
+
+      if (hasDuplicateMonth) {
+        setModalError("年月に重複したデータがあります");
+        return;
+      }
+
+      setSaving(true);
+
+      await api.upsertApplicationMetric({
+        month: metricForm.target_month,
+        metric_definition_id: Number(metricForm.metric_definition_id),
+        target_total: Number(metricForm.target_total),
+        actual_total: selectedDefinition?.supports_breakdown
+          ? 0
+          : Number(metricForm.actual_total),
+        actual_new_graduate: selectedDefinition?.supports_breakdown
+          ? Number(metricForm.actual_new_graduate)
+          : Number(metricForm.actual_total),
+        actual_mid_career: selectedDefinition?.supports_breakdown
+          ? Number(metricForm.actual_mid_career)
+          : 0,
+        memo: metricForm.memo,
+      });
+
+      const savedYear = metricForm.target_month.slice(0, 4);
+      setSelectedYear(savedYear);
+      setSelectedMonth(metricForm.target_month);
+
+      await loadDashboard();
+
+      setMetricForm((prev) => ({
+        ...prev,
+        target_total: "",
+        actual_total: "",
+        actual_new_graduate: "",
+        actual_mid_career: "",
+        memo: "",
+      }));
+      setOpenInputModal(false);
+    } catch (e) {
+      const message =
+        e?.response?.data?.error || "保存に失敗しました";
+      setModalError(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // =========================
@@ -218,6 +333,27 @@ function App() {
     [selectedRows]
   );
 
+  const latestInputRow = useMemo(() => {
+    if (allRows.length === 0) return null;
+
+    return [...allRows].sort((a, b) => {
+      const monthDiff = (b.target_month || "").localeCompare(a.target_month || "");
+      if (monthDiff !== 0) return monthDiff;
+
+      return Number(b.id || 0) - Number(a.id || 0);
+    })[0];
+  }, [allRows]);
+
+  const latestInputMetricName = useMemo(() => {
+    if (!latestInputRow) return "-";
+
+    return (
+      metricDefinitions.find(
+        (item) => Number(item.id) === Number(latestInputRow.metric_definition_id)
+      )?.name || "-"
+    );
+  }, [latestInputRow, metricDefinitions]);
+
   // =========================
   // 表示用フォーマット
   // =========================
@@ -260,9 +396,23 @@ function App() {
         <div className="p-4 flex flex-col gap-4">
 
           {/* ✅ 月表示（ここが今回のゴール） */}
-          <p className="font-bold text-lg">
-            {formatMonthDisplay(selectedMonth)}
-          </p>
+          <div className="flex items-center justify-between w-full">
+            <p className="font-bold text-lg">
+              {formatMonthDisplay(selectedMonth)}
+            </p>
+            <button
+              className="bg-blue-500 text-white px-3 py-1 rounded"
+              onClick={handleOpenInputFromDashboard}
+            >
+              ＋
+            </button>
+          </div>
+
+          <LatestInputData
+            latestInputRow={latestInputRow}
+            latestInputMetricName={latestInputMetricName}
+            formatMonthDisplay={formatMonthDisplay}
+          />
 
           {/* KPI */}
           <KpiCards
@@ -270,8 +420,6 @@ function App() {
             formatRate={formatRate}
             formatSignedRate={formatSignedRate}
           />
-
-          <QuickBtns />
 
           <MiniInfo
             selectedKpi={selectedKpi}
@@ -282,15 +430,15 @@ function App() {
 
           {/* グラフ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <ChartCard title="目標 vs 実績">
+            <ChartCard title="目標/実績">
               <GoalResultChart data={yearSeries} />
             </ChartCard>
 
-            <ChartCard title="前年比較">
+            <ChartCard title="エントリー数の前年比較">
               <YearCompareChart data={yoySeries} />
             </ChartCard>
 
-            <ChartCard title="達成率推移">
+            <ChartCard title="達成率">
               <RateTrendChart data={yearSeries} />
             </ChartCard>
 
@@ -300,6 +448,21 @@ function App() {
           </div>
         </div>
       )}
+
+      <UnifiedInputModal
+        open={openInputModal}
+        onClose={() => {
+          setModalError("");
+          setOpenInputModal(false);
+        }}
+        title="応募データ入力"
+        definitions={metricDefinitions}
+        form={metricForm}
+        setForm={setMetricForm}
+        errorMessage={modalError}
+        onSave={handleSaveMetric}
+        saving={saving}
+      />
     </div>
   );
 }

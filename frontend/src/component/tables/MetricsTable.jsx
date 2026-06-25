@@ -42,28 +42,24 @@ const MetricsTable = ({ rows, onEdit = () => { } }) => {
               <span style={{ display: "inline-block", textAlign: "center", lineHeight: 1.2 }}>
                 目標
                 <br />
-                （合計）
+                （実績）
               </span>
             </TableCell>
             <TableCell align="center" sx={{ fontSize: "0.98rem", fontWeight: 700, py: 1.5, backgroundColor: "#f8fafc" }}>
               <span style={{ display: "inline-block", textAlign: "center", lineHeight: 1.2 }}>
-                実績
+                合計
                 <br />
-                （合計）
+                （実績）
               </span>
             </TableCell>
             <TableCell align="center" sx={{ fontSize: "0.98rem", fontWeight: 700, py: 1.5, backgroundColor: "#f8fafc" }}>
               <span style={{ display: "inline-block", textAlign: "center", lineHeight: 1.2 }}>
-                実績
-                <br />
-                （新卒）
+                新卒
               </span>
             </TableCell>
             <TableCell align="center" sx={{ fontSize: "0.98rem", fontWeight: 700, py: 1.5, backgroundColor: "#f8fafc" }}>
               <span style={{ display: "inline-block", textAlign: "center", lineHeight: 1.2 }}>
-                実績
-                <br />
-                （中途）
+                中途
               </span>
             </TableCell>
             <TableCell align="center" sx={{ fontSize: "0.98rem", fontWeight: 700, py: 1.5, backgroundColor: "#f8fafc" }}>

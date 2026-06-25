@@ -8,20 +8,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import ActionButtons from "./component/buttons/ActionButtons";
-import InputMenuButton from "./component/buttons/InputMenuButton";
 import * as api from "./api";
 import UnifiedInputModal from "./component/modals/UnifiedInputModal";
 import MetricsTable from "./component/tables/MetricsTable";
 import { normalizeMetricRows } from "./dataMath";
-
-// 現在の年月を作成
-const getCurrentMonth = () => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
-};
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -31,27 +21,15 @@ const Home = () => {
   const [availableYears, setAvailableYears] = React.useState([String(new Date().getFullYear())]);
   const [metricDefinitions, setMetricDefinitions] = React.useState([]);
   const [metricRows, setMetricRows] = React.useState([]);
+  const [expandedMonths, setExpandedMonths] = React.useState([]);
 
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
-  const [modalError, setModalError] = React.useState("");
-
-  const [openInputModal, setOpenInputModal] = React.useState(false);
 
   const [openEditModal, setOpenEditModal] = React.useState(false);
   const [editModalError, setEditModalError] = React.useState("");
   const [editingRow, setEditingRow] = React.useState(null);
-
-  const [metricForm, setMetricForm] = React.useState({
-    metric_definition_id: "",
-    target_month: getCurrentMonth(),
-    target_total: "",
-    actual_total: "",
-    actual_new_graduate: "",
-    actual_mid_career: "",
-    memo: "",
-  });
 
   const [editForm, setEditForm] = React.useState({
     id: "",
@@ -113,13 +91,6 @@ const Home = () => {
         const definitions = await api.getMetricDefinitions();
         setMetricDefinitions(definitions);
 
-        if (definitions.length > 0) {
-          setMetricForm((prev) => ({
-            ...prev,
-            metric_definition_id: definitions[0].id,
-          }));
-        }
-
         await loadRows(selectedYear);
       } catch {
         setError("初期データの取得に失敗しました");
@@ -150,93 +121,50 @@ const Home = () => {
     setOpenEditModal(true);
   };
 
-  // 入力データを新規保存する
-  const handleSaveMetric = async () => {
-    setModalError("");
+  const monthlyGroups = React.useMemo(() => {
+    const map = new Map();
 
-    const selectedDefinition =
-      metricDefinitions.find(
-        (item) => item.id === Number(metricForm.metric_definition_id)
-      ) || null;
+    metricRows.forEach((row) => {
+      const month = row.target_month || row.month || "-";
+      if (!map.has(month)) {
+        map.set(month, []);
+      }
+      map.get(month).push(row);
+    });
 
-    if (
-      !metricForm.metric_definition_id ||
-      !metricForm.target_month ||
-      metricForm.target_total === ""
-    ) {
-      setModalError("指標、対象年月、目標（合計）を入力してください");
+    const months = Array.from(map.keys()).sort((a, b) => b.localeCompare(a));
+
+    return months.map((month) => ({
+      month,
+      rows: map.get(month) || [],
+    }));
+  }, [metricRows]);
+
+  React.useEffect(() => {
+    if (monthlyGroups.length === 0) {
+      setExpandedMonths([]);
       return;
     }
 
-    if (!MONTH_PATTERN.test(metricForm.target_month)) {
-      setModalError("対象年月はYYYY-MM形式で入力してください");
-      return;
-    }
-
-    if (
-      selectedDefinition?.supports_breakdown
-        ? metricForm.actual_new_graduate === "" || metricForm.actual_mid_career === ""
-        : metricForm.actual_total === ""
-    ) {
-      setModalError("実績値を入力してください");
-      return;
-    }
-
-    try {
-      const allMetrics = await api.getMetrics();
-
-      const hasDuplicateMonth = (allMetrics.rows || []).some(
-        (row) =>
-          Number(row.metric_definition_id) === Number(metricForm.metric_definition_id) &&
-          row.target_month === metricForm.target_month,
+    setExpandedMonths((prev) => {
+      const validMonths = prev.filter((month) =>
+        monthlyGroups.some((group) => group.month === month)
       );
 
-      if (hasDuplicateMonth) {
-        setModalError("年月に重複したデータがあります");
-        return;
+      if (validMonths.length > 0) {
+        return validMonths;
       }
 
-      setSaving(true);
+      return [monthlyGroups[0].month];
+    });
+  }, [monthlyGroups]);
 
-      await api.saveMetricRecord({
-        month: metricForm.target_month,
-        metric_definition_id: Number(metricForm.metric_definition_id),
-        target_total: Number(metricForm.target_total),
-        actual_total: selectedDefinition?.supports_breakdown
-          ? 0
-          : Number(metricForm.actual_total),
-        actual_new_graduate: selectedDefinition?.supports_breakdown
-          ? Number(metricForm.actual_new_graduate)
-          : Number(metricForm.actual_total),
-        actual_mid_career: selectedDefinition?.supports_breakdown
-          ? Number(metricForm.actual_mid_career)
-          : 0,
-        memo: metricForm.memo,
-      });
-
-      const savedYear = metricForm.target_month.slice(0, 4);
-
-      setSelectedYear(savedYear);
-      await loadRows(savedYear);
-
-      setMetricForm((prev) => ({
-        ...prev,
-        target_month: metricForm.target_month,
-        target_total: "",
-        actual_total: "",
-        actual_new_graduate: "",
-        actual_mid_career: "",
-        memo: "",
-      }));
-
-      setModalError("");
-      setOpenInputModal(false);
-    } catch (error) {
-      const message = error?.response?.data?.error || "保存に失敗しました";
-      setModalError(message);
-    } finally {
-      setSaving(false);
-    }
+  const handleToggleMonth = (month) => {
+    setExpandedMonths((prev) =>
+      prev.includes(month)
+        ? prev.filter((item) => item !== month)
+        : [...prev, month]
+    );
   };
 
   // 編集データを更新する
@@ -382,25 +310,9 @@ const Home = () => {
           ))}
         </TextField>
 
-        <InputMenuButton
-          onClick={() => {
-            setModalError("");
-
-            const currentMonthNumber = String(new Date().getMonth() + 1).padStart(2, "0");
-
-            setMetricForm((prev) => ({
-              ...prev,
-              target_month: `${selectedYear}-${currentMonthNumber}`,
-            }));
-
-            setOpenInputModal(true);
-          }}
-        />
-
-        <ActionButtons onReload={() => loadRows(selectedYear)} />
       </Stack>
 
-      <Paper sx={{ p: { xs: 2, md: 3 } }}>
+      <Paper sx={{ p: { xs: 2, md: 3 }, border: "1px solid #cbd5e1" }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
           {selectedYear}年 データ一覧
         </Typography>
@@ -415,25 +327,51 @@ const Home = () => {
           <Box sx={{ py: 4, display: "flex", justifyContent: "center" }}>
             <CircularProgress />
           </Box>
+        ) : monthlyGroups.length === 0 ? (
+          <Typography sx={{ color: "#6b7280", fontSize: "1rem" }}>
+            データがありません
+          </Typography>
         ) : (
-          <MetricsTable rows={metricRows} onEdit={handleOpenEditModal} />
+          <Stack spacing={2}>
+            {monthlyGroups.map((group) => {
+              const isOpen = expandedMonths.includes(group.month);
+
+              return (
+                <Box
+                  key={group.month}
+                  sx={{ border: "1px solid #94a3b8", borderRadius: 2, overflow: "hidden" }}
+                >
+                  <Box
+                    onClick={() => handleToggleMonth(group.month)}
+                    sx={{
+                      px: 2,
+                      py: 1.5,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      cursor: "pointer",
+                      backgroundColor: "#f8fafc",
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700, fontSize: "1rem" }}>
+                      {group.month} ({group.rows.length}件)
+                    </Typography>
+                    <Typography sx={{ color: "#4b5563", fontWeight: 700 }}>
+                      {isOpen ? "▲" : "▼"}
+                    </Typography>
+                  </Box>
+
+                  {isOpen && (
+                    <Box sx={{ p: 1.5, backgroundColor: "#ffffff" }}>
+                      <MetricsTable rows={group.rows} onEdit={handleOpenEditModal} />
+                    </Box>
+                  )}
+                </Box>
+              );
+            })}
+          </Stack>
         )}
       </Paper>
-
-      <UnifiedInputModal
-        open={openInputModal}
-        onClose={() => {
-          setModalError("");
-          setOpenInputModal(false);
-        }}
-        title="応募データ入力"
-        definitions={metricDefinitions}
-        form={metricForm}
-        setForm={setMetricForm}
-        errorMessage={modalError}
-        onSave={handleSaveMetric}
-        saving={saving}
-      />
 
       <UnifiedInputModal
         open={openEditModal}
