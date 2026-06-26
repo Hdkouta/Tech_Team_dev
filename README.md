@@ -84,7 +84,7 @@ npm run dev
 
 起動後の画面URL:
 
-- http://localhost:3000
+- http://localhost:5173/
 
 ### 3. （任意）サンプルデータ投入
 
