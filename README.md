@@ -78,12 +78,13 @@ python app.py
 別ターミナルで実行:
 
 ```bash
-npm --prefix frontend run dev -- --host
+cd frontend
+npm run dev
 ```
 
 起動後の画面URL:
 
-- http://localhost:5173
+- http://localhost:3000
 
 ### 3. （任意）サンプルデータ投入
 
