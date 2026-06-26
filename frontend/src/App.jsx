@@ -372,8 +372,8 @@ function App() {
     <div className="bg-gray-100 min-h-screen flex flex-col">
       {/* ヘッダー */}
       <div className="bg-blue-600 text-white px-4 py-3 flex justify-between">
-        <h1 className="font-bold">
-          採用KPIダッシュボード
+        <h1 className="font-bold text-lg">
+          RecruView
         </h1>
 
         <TopPick
@@ -395,7 +395,7 @@ function App() {
       ) : (
         <div className="p-4 flex flex-col gap-4">
 
-          {/* ✅ 月表示（ここが今回のゴール） */}
+          {/* 月表示*/}
           <div className="flex items-center justify-between w-full">
             <p className="font-bold text-lg">
               {formatMonthDisplay(selectedMonth)}

@@ -13,37 +13,41 @@ const TopPick = ({
 }) => {
   return (
     <div className="flex items-center gap-2">
-      <select
-        className="bg-white text-gray-800 text-sm sm:text-base px-2 py-1 rounded"
-        value={selectedYear}
-        onChange={(e) => onYearChange(e.target.value)}
-        disabled={yearOptions.length === 0}
-      >
-        {yearOptions.length === 0 && (
-          <option value="">データなし</option>
-        )}
-        {yearOptions.map((year) => (
-          <option key={year} value={year}>
-            {year}年
-          </option>
-        ))}
-      </select>
+      {!showDataView && (
+        <>
+          <select
+            className="bg-white text-gray-800 text-sm sm:text-base px-2 py-1 rounded"
+            value={selectedYear}
+            onChange={(e) => onYearChange(e.target.value)}
+            disabled={yearOptions.length === 0}
+          >
+            {yearOptions.length === 0 && (
+              <option value="">データなし</option>
+            )}
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>
+                {year}年
+              </option>
+            ))}
+          </select>
 
-      <select
-        className="bg-white text-gray-800 text-sm sm:text-base px-2 py-1 rounded"
-        value={selectedMonth ? selectedMonth.slice(5, 7) : ""}
-        onChange={(e) => onMonthChange(e.target.value)}
-        disabled={monthOnlyOptions.length === 0 || !selectedYear}
-      >
-        {monthOnlyOptions.length === 0 && (
-          <option value="">月なし</option>
-        )}
-        {monthOnlyOptions.map((month) => (
-          <option key={month} value={month}>
-            {Number(month)}月
-          </option>
-        ))}
-      </select>
+          <select
+            className="bg-white text-gray-800 text-sm sm:text-base px-2 py-1 rounded"
+            value={selectedMonth ? selectedMonth.slice(5, 7) : ""}
+            onChange={(e) => onMonthChange(e.target.value)}
+            disabled={monthOnlyOptions.length === 0 || !selectedYear}
+          >
+            {monthOnlyOptions.length === 0 && (
+              <option value="">月なし</option>
+            )}
+            {monthOnlyOptions.map((month) => (
+              <option key={month} value={month}>
+                {Number(month)}月
+              </option>
+            ))}
+          </select>
+        </>
+      )}
 
       <button
         type="button"
